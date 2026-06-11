@@ -2,6 +2,43 @@
 
 import PackageDescription
 
+let swiftfinTargetExcludes = [
+    ".build",
+    ".github",
+    ".swiftpm",
+    "Carthage",
+    "Documentation",
+    "PreferencesView",
+    "Resources",
+    "Scripts",
+    "Swiftfin tvOS",
+    "Swiftfin.xcodeproj",
+    "XcodeConfig",
+    "build",
+    "fastlane",
+    "Shared/.DS_Store",
+    "Shared/Objects/.DS_Store",
+    "Shared/Objects/MediaPlayerManager/.DS_Store",
+    "Swiftfin/.DS_Store",
+    "Swiftfin/App",
+    "Swiftfin/Resources/Info.plist",
+    "Swiftfin/Resources/Swiftfin.entitlements",
+    "Translations/.DS_Store",
+]
+
+let swiftfinTargetSources = [
+    "Shared",
+    "Swiftfin/Components",
+    "Swiftfin/Extensions",
+    "Swiftfin/Objects",
+    "Swiftfin/Views",
+]
+
+let swiftfinTargetResources: [Resource] = [
+    .process("Swiftfin/Resources/Assets.xcassets"),
+    .process("Translations"),
+]
+
 let package = Package(
     name: "Swiftfin",
     defaultLocalization: "en",
@@ -10,8 +47,8 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "Swiftfin",
-            targets: ["Swiftfin"]
+            name: "SwiftfinLib",
+            targets: ["SwiftfinLib"]
         ),
     ],
     dependencies: [
@@ -45,7 +82,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "Swiftfin",
+            name: "SwiftfinLib",
             dependencies: [
                 .product(name: "Algorithms", package: "swift-algorithms"),
                 .product(name: "BlurHashKit", package: "BlurHashKit"),
@@ -79,27 +116,9 @@ let package = Package(
                 .product(name: "VLCUI", package: "VLCUI"),
             ],
             path: ".",
-            exclude: [
-                "Shared/.DS_Store",
-                "Shared/Objects/.DS_Store",
-                "Shared/Objects/MediaPlayerManager/.DS_Store",
-                "Swiftfin/.DS_Store",
-                "Swiftfin/App",
-                "Swiftfin/Resources/Info.plist",
-                "Swiftfin/Resources/Swiftfin.entitlements",
-                "Translations/.DS_Store",
-            ],
-            sources: [
-                "Shared",
-                "Swiftfin/Components",
-                "Swiftfin/Extensions",
-                "Swiftfin/Objects",
-                "Swiftfin/Views",
-            ],
-            resources: [
-                .process("Swiftfin/Resources/Assets.xcassets"),
-                .process("Translations"),
-            ]
+            exclude: swiftfinTargetExcludes,
+            sources: swiftfinTargetSources,
+            resources: swiftfinTargetResources
         ),
         .binaryTarget(
             name: "MobileVLCKit",
