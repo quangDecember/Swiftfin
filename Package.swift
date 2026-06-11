@@ -78,9 +78,12 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-identified-collections", exact: "1.1.1"),
         .package(url: "https://github.com/sindresorhus/Defaults", exact: "9.0.2"),
         .package(url: "https://github.com/siteline/SwiftUI-Introspect", exact: "26.0.1"),
-        .package(path: "PreferencesView"),
     ],
     targets: [
+        .target(
+            name: "PreferencesView",
+            path: "PreferencesView/Sources/PreferencesView"
+        ),
         .target(
             name: "SwiftfinLib",
             dependencies: [
@@ -105,7 +108,7 @@ let package = Package(
                 .product(name: "Nuke", package: "Nuke"),
                 .product(name: "NukeUI", package: "Nuke"),
                 .product(name: "OrderedCollections", package: "swift-collections"),
-                .product(name: "PreferencesView", package: "PreferencesView"),
+                "PreferencesView",
                 .product(name: "Pulse", package: "Pulse"),
                 .product(name: "PulseLogHandler", package: "PulseLogHandler"),
                 .product(name: "PulseUI", package: "Pulse"),
