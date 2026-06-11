@@ -1,5 +1,4 @@
 {
-  "originHash" : "abc5b4b8ea9d646a3adfbee724badcb25df112cd13492c1967d34287be490c73",
   "pins" : [
     {
       "identity" : "blurhashkit",
@@ -213,8 +212,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser",
       "state" : {
-        "revision" : "5e0406d68a4937f21ae5f670b8f89dad1d156a1c",
-        "version" : "1.8.0"
+        "revision" : "6a52f3251125d74daf04fcbd5e6f08a75d074382",
+        "version" : "1.8.2"
       }
     },
     {
@@ -267,8 +266,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio.git",
       "state" : {
-        "revision" : "f71c8d2a5e74a2c6d11a0fbe324774b5d6084237",
-        "version" : "2.99.0"
+        "revision" : "77b84ac2cd2ac9e4ac67d19f045fd5b434f56967",
+        "version" : "2.101.0"
       }
     },
     {
@@ -303,8 +302,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-system.git",
       "state" : {
-        "revision" : "7c6ad0fc39d0763e0b699210e4124afd5041c5df",
-        "version" : "1.6.4"
+        "revision" : "669763cfd5806a67e21972d7e5e2d6b80b1ea985",
+        "version" : "1.6.5"
       }
     },
     {
@@ -326,15 +325,6 @@
       }
     },
     {
-      "identity" : "tvospicker",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ViacomInc/TVOSPicker",
-      "state" : {
-        "revision" : "90806460f3b3e7564344647241c157aeb0b27a71",
-        "version" : "0.3.0"
-      }
-    },
-    {
       "identity" : "vlcui",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/LePips/VLCUI",
@@ -348,10 +338,10 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay",
       "state" : {
-        "revision" : "dfd70507def84cb5fb821278448a262c6ff2bbad",
-        "version" : "1.9.0"
+        "revision" : "cb281f343fd953280336dcbd3822cdf47c182f5b",
+        "version" : "1.10.0"
       }
     }
   ],
-  "version" : 3
+  "version" : 2
 }

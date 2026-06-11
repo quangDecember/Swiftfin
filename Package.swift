@@ -18,7 +18,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-algorithms.git", exact: "1.2.1"),
         .package(url: "https://github.com/apple/swift-collections.git", exact: "1.4.1"),
         .package(url: "https://github.com/apple/swift-log.git", exact: "1.12.0"),
-        .package(url: "https://github.com/JohnEstropia/CoreStore.git", exact: "9.3.0"),
+        .package(url: "https://github.com/quangDecember/CoreStore.git", branch: "xcode27"),
         .package(url: "https://github.com/JohnSundell/Files", exact: "4.3.0"),
         .package(url: "https://github.com/LePips/BlurHashKit", exact: "1.2.0"),
         .package(url: "https://github.com/LePips/CollectionHStack", branch: "main"),
