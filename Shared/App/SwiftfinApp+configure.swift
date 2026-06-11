@@ -13,9 +13,9 @@ import Nuke
 import PulseLogHandler
 import UIKit
 
-extension SwiftfinApp {
+public enum SwiftfinLibrary {
 
-    static func configure() {
+    public static func configure() {
 
         #if DEBUG
         SwizzleDefaults.set(Defaults[.isLiquidGlassEnabled], for: "com.apple.SwiftUI.IgnoreSolariumOptOut")

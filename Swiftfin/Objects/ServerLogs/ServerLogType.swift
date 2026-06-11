@@ -55,7 +55,7 @@ enum ServerLogType: String, CaseIterable, Displayable, SystemImageable {
             self = .remux
         } else if rawValue.hasPrefix("FFmpeg.Transcode-") {
             self = .transcode
-        } else if rawValue.contains(/^log_\d{8}\.log$/) {
+        } else if rawValue.range(of: #"^log_\d{8}\.log$"#, options: .regularExpression) != nil {
             // This is intentionally at the end as it's the heaviest check.
             self = .system
         } else {

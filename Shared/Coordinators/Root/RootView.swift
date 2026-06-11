@@ -8,12 +8,14 @@
 
 import SwiftUI
 
-struct RootView: View {
+public struct RootView: View {
 
     @StateObject
     private var rootCoordinator: RootCoordinator = .init()
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         ZStack {
             if rootCoordinator.root.id == RootItem.appLoading.id {
                 RootItem.appLoading.content

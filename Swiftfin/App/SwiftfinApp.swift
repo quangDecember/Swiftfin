@@ -19,10 +19,10 @@ struct SwiftfinApp: App {
     private var appDelegate
 
     @StateObject
-    private var valueObservation = ValueObservation()
+    private var valueObservation = SwiftfinAppValueObservation()
 
     init() {
-        Self.configure()
+        SwiftfinLibrary.configure()
 
         UIScrollView.appearance().keyboardDismissMode = .onDrag
 

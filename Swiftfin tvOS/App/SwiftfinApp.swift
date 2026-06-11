@@ -14,10 +14,10 @@ import SwiftUI
 struct SwiftfinApp: App {
 
     @StateObject
-    private var valueObservation = ValueObservation()
+    private var valueObservation = SwiftfinAppValueObservation()
 
     init() {
-        Self.configure()
+        SwiftfinLibrary.configure()
 
         UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: UIColor.label]
     }
