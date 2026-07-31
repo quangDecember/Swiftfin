@@ -1,4 +1,7 @@
 excluded:
+  - .build
+  - .DerivedData
+  - Carthage
   - build
 
 only_rules:

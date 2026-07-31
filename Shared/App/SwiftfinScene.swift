@@ -6,24 +6,36 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
+import PreferencesView
 import SwiftUI
+import UIKit
 
-@main
-struct SwiftfinApp: App {
+public struct SwiftfinScene: Scene {
 
-    init() {
+    public init() {
         SwiftfinLibrary.configure()
-
-        UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: UIColor.label]
     }
 
-    var body: some Scene {
+    public var body: some Scene {
         WindowGroup {
-            OverlayToastView {
+            SwiftfinView()
+        }
+    }
+}
+
+public struct SwiftfinView: View {
+
+    public init() {}
+
+    public var body: some View {
+        OverlayToastView {
+            PreferencesView {
                 WithUserAuthentication {
                     RootView()
+                        .supportedOrientations(UIDevice.isPad ? .allButUpsideDown : .portrait)
                 }
             }
         }
+        .ignoresSafeArea()
     }
 }

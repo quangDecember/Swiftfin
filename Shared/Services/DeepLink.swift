@@ -22,14 +22,25 @@ struct DeepLink: Equatable {
     let destination: Destination
 
     init?(_ url: URL) {
-        guard let match = url.absoluteString.wholeMatch(
-            of: /^swiftfin:\/\/(?<serverID>[A-Za-z0-9]+)\/(?<userID>[A-Za-z0-9]+)\/(?<destinationType>item|library)\/(?<destinationID>[A-Za-z0-9]+)\/?$/
-        ) else { return nil }
+        let value = url.absoluteString
+        let pattern = #"^swiftfin://([A-Za-z0-9]+)/([A-Za-z0-9]+)/(item|library)/([A-Za-z0-9]+)/?$"#
 
-        self.serverID = String(match.output.serverID)
-        self.userID = String(match.output.userID)
+        guard let expression = try? NSRegularExpression(pattern: pattern),
+              let match = expression.firstMatch(
+                  in: value,
+                  range: NSRange(value.startIndex..., in: value)
+              ),
+              let serverIDRange = Range(match.range(at: 1), in: value),
+              let userIDRange = Range(match.range(at: 2), in: value),
+              let destinationIDRange = Range(match.range(at: 4), in: value)
+        else {
+            return nil
+        }
 
-        self.destination = .item(id: String(match.output.destinationID))
+        self.serverID = String(value[serverIDRange])
+        self.userID = String(value[userIDRange])
+
+        self.destination = .item(id: String(value[destinationIDRange]))
     }
 
     @MainActor

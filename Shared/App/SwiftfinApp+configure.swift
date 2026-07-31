@@ -7,15 +7,36 @@
 //
 
 import CoreStore
+#if SWIFT_PACKAGE
+import CoreText
+#endif
 import FactoryKit
+import Foundation
 import Logging
 import Nuke
 import PulseLogHandler
 import UIKit
 
-extension SwiftfinApp {
+public enum SwiftfinLibrary {
 
-    static func configure() {
+    #if SWIFT_PACKAGE
+    private static let registerPackagedFonts: Void = {
+        guard let fontURL = Bundle.module.url(
+            forResource: "NotoSansCJK-Regular",
+            withExtension: "ttc"
+        ) else {
+            return
+        }
+
+        CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, nil)
+    }()
+    #endif
+
+    public static func configure() {
+
+        #if SWIFT_PACKAGE
+        _ = registerPackagedFonts
+        #endif
 
         // Logging
         LoggingSystem.bootstrap { label in

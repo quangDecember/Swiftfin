@@ -14,7 +14,7 @@ import UIKit
 struct SwiftfinApp: App {
 
     init() {
-        Self.configure()
+        SwiftfinLibrary.configure()
 
         UIScrollView.appearance().keyboardDismissMode = .onDrag
 
