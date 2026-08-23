@@ -138,11 +138,18 @@ build_slice() {
 
     echo "==> building $module for $destination" >&2
 
+    # `-skipMacroValidation`: Swiftfin depends on macros (StatefulMacro,
+    # swift-case-paths through Defaults), and xcodebuild refuses to run a macro
+    # plugin whose fingerprint has not been approved. Approval is a per-machine
+    # Xcode trust record, so a developer who has opened the project once never
+    # sees this, while a fresh runner fails every build with "Macro ... must be
+    # enabled before it can be used".
     SWIFTFIN_XCFRAMEWORK=1 xcodebuild build \
         -scheme "$module" \
         -configuration Release \
         -destination "$destination" \
         -derivedDataPath "$derived" \
+        -skipMacroValidation \
         BUILD_LIBRARY_FOR_DISTRIBUTION="$library_evolution" \
         > "$log" 2>&1 || {
             echo "build failed; from $log:" >&2
