@@ -144,12 +144,20 @@ build_slice() {
     # Xcode trust record, so a developer who has opened the project once never
     # sees this, while a fresh runner fails every build with "Macro ... must be
     # enabled before it can be used".
+    #
+    # `SWIFT_VERIFY_EMITTED_MODULE_INTERFACE=NO`: belt and braces. `Package.swift`
+    # no longer passes `-emit-module-interface`, so there should be no interface
+    # to verify — but Xcode 26.6 schedules the verification task off flags it
+    # finds in `OTHER_SWIFT_FLAGS`, and `-enable-library-evolution` is still
+    # there. Xcode 27 never scheduled it at all, which is why this only ever
+    # broke on CI.
     SWIFTFIN_XCFRAMEWORK=1 xcodebuild build \
         -scheme "$module" \
         -configuration Release \
         -destination "$destination" \
         -derivedDataPath "$derived" \
         -skipMacroValidation \
+        SWIFT_VERIFY_EMITTED_MODULE_INTERFACE=NO \
         BUILD_LIBRARY_FOR_DISTRIBUTION="$library_evolution" \
         > "$log" 2>&1 || {
             echo "build failed; from $log:" >&2

@@ -108,14 +108,25 @@ let swiftfinSwiftSettings: [SwiftSetting] = [
     // `BUILD_LIBRARY_FOR_DISTRIBUTION`, which xcodebuild would force onto every
     // dependency — and swift-nio's `_NIODataStructures` does not compile with it.
     //
-    // The resulting `.swiftinterface` is what lets a consumer of the binary
-    // distribution load `Swiftfin` while only having the modules named in its
-    // public API, instead of all fifty modules linked into the framework.
+    // `-emit-module-interface` is deliberately *not* passed alongside it. The
+    // textual interface Swiftfin currently generates does not round-trip:
     //
-    // These flags are unsafe only in the sense that SwiftPM forbids them in a
-    // package resolved as a dependency. `buildingXCFramework` is set solely by
+    //   - `Defaults.Key` prints module-qualified as `Defaults.Defaults.Key`,
+    //     which no longer parses, because the `Defaults` module's top-level type
+    //     is itself named `Defaults`.
+    //   - Opaque returns in public protocol extensions (`TextTransferable`)
+    //     print bodies whose branches disagree about `some View` versus `Self`.
+    //
+    // Nothing consumes that interface today: `-create-xcframework` runs with
+    // `-allow-internal-distribution` and the shipped framework carries only a
+    // `.swiftmodule`, so emitting it bought nothing while making
+    // `SwiftVerifyEmittedModuleInterface` fail the build. Restore the flag once
+    // the two issues above are fixed and the interface is actually shipped.
+    //
+    // This flag is unsafe only in the sense that SwiftPM forbids it in a package
+    // resolved as a dependency. `buildingXCFramework` is set solely by
     // `Scripts/build-xcframework.sh`, so consumers never evaluate this branch.
-    .unsafeFlags(["-enable-library-evolution", "-emit-module-interface"]),
+    .unsafeFlags(["-enable-library-evolution"]),
 ] : [])
 
 /// Files under `Shared/` that do not compile for tvOS.
