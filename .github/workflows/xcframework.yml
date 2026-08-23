@@ -80,6 +80,19 @@ jobs:
       - name: Build XCFrameworks
         run: Scripts/build-xcframework.sh --platform ${{ steps.platform.outputs.value }} --update-manifest
 
+      # The script streams a target-by-target summary to the console and keeps
+      # the full ~11MB xcodebuild output per slice on disk. On failure it prints
+      # only the errors it could find, which is rarely the whole story, so keep
+      # the logs themselves.
+      - name: Upload build logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-logs
+          path: build/xcframework/*.log
+          retention-days: 7
+          if-no-files-found: warn
+
       - name: Publish frameworks
         env:
           GH_TOKEN: ${{ github.token }}

@@ -128,6 +128,86 @@ set_manifest_value() {
 rm -rf "$output"/*.xcframework "$output"/*.xcframework.zip "$output"/*.checksum
 mkdir -p "$output"
 
+# Turns xcodebuild's firehose into a readable progress stream on stderr.
+#
+# A release build takes about twenty minutes per slice and its full output runs
+# to ~11MB, so the log goes to a file and only milestones reach the terminal.
+# Printing nothing at all, which is what this used to do, is indistinguishable
+# from a hang — especially on CI, where there is no local activity to watch.
+#
+# Every xcodebuild task line ends in `(in target 'X' from project 'Y')`, so the
+# target name is the one progress signal that is always present. An iOS slice
+# touches 89 of them, which is about the right number of lines for a
+# twenty-minute build.
+#
+# Each target is announced once, the first time it is seen. Reporting whenever
+# the name *changes* looks like the obvious thing to do and is much worse:
+# xcodebuild runs targets in parallel and interleaves their task lines, so the
+# name flaps back and forth and the same log yields 629 lines instead of 89.
+#
+# Written to a file rather than held in a variable: bash misparses a quoted
+# heredoc nested inside a command substitution inside double quotes.
+progress_filter="$staging/progress.py"
+
+cat > "$progress_filter" <<'PYTHON'
+import sys
+import threading
+import time
+
+start = time.time()
+lock = threading.Lock()
+state = {"target": None, "last": start}
+seen = set()
+
+
+def report(text):
+    with lock:
+        state["last"] = time.time()
+        seconds = int(time.time() - start)
+        sys.stderr.write("    [%d:%02d] %s\n" % (seconds // 60, seconds % 60, text))
+        sys.stderr.flush()
+
+
+def heartbeat():
+    # Swiftfin's own ~700 files compile as a single whole-module task, which can
+    # run for minutes without emitting a line. Say something anyway.
+    while True:
+        time.sleep(30)
+
+        with lock:
+            quiet = time.time() - state["last"]
+            target = state["target"]
+
+        if quiet >= 60:
+            report("still compiling %s (%d targets done)" % (target or "dependencies", len(seen)))
+
+
+threading.Thread(target=heartbeat, daemon=True).start()
+
+MARKER = "(in target "
+
+for line in sys.stdin:
+    at = line.find(MARKER)
+
+    if at < 0:
+        continue
+
+    rest = line[at + len(MARKER):]
+    end = rest.find(" from project")
+
+    if end < 0:
+        continue
+
+    target = rest[:end].strip().strip("'")
+
+    if target in seen:
+        continue
+
+    seen.add(target)
+    state["target"] = target
+    report("%3d  %s" % (len(seen), target))
+PYTHON
+
 # build_slice <module> <destination> <products-subdirectory>
 #
 # Emits the path of the assembled framework on stdout.
@@ -137,6 +217,10 @@ build_slice() {
     local log="$output/$module-$products_dir.log"
 
     echo "==> building $module for $destination" >&2
+    echo "    full output: $log" >&2
+
+    local started
+    started="$(date +%s)"
 
     # `-skipMacroValidation`: Swiftfin depends on macros (StatefulMacro,
     # swift-case-paths through Defaults), and xcodebuild refuses to run a macro
@@ -159,7 +243,7 @@ build_slice() {
         -skipMacroValidation \
         SWIFT_VERIFY_EMITTED_MODULE_INTERFACE=NO \
         BUILD_LIBRARY_FOR_DISTRIBUTION="$library_evolution" \
-        > "$log" 2>&1 || {
+        2>&1 | tee "$log" | /usr/bin/python3 -u "$progress_filter" || {
             echo "build failed; from $log:" >&2
 
             # Resolution failures put the reason on the lines *after* the
@@ -173,6 +257,8 @@ build_slice() {
 
             exit 1
         }
+
+    echo "    built in $(( $(date +%s) - started ))s" >&2
 
     local products="$derived/Build/Products/Release-$products_dir"
     local framework="$products/PackageFrameworks/$module.framework"
