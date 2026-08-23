@@ -18,6 +18,28 @@ import SwiftUI
 //       - introduce `UserSetting` and `ServerSetting`
 //         that automatically namespace
 
+/// Adapts any `Storable` value to Defaults without making the value's type
+/// publicly conform to `Defaults.Serializable`.
+///
+/// Encoding and decoding the value directly preserves the JSON representation
+/// used before this wrapper existed, so existing defaults migrate unchanged.
+struct DefaultsStorable<Value: Storable>: Codable, Defaults.Serializable {
+
+    let value: Value
+
+    init(_ value: Value) {
+        self.value = value
+    }
+
+    init(from decoder: Decoder) throws {
+        value = try Value(from: decoder)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        try value.encode(to: encoder)
+    }
+}
+
 /// A property wrapper for a stored `AnyData` object.
 @propertyWrapper
 struct StoredValue<Value: Storable>: DynamicProperty {
@@ -128,9 +150,9 @@ enum StoredValues {
                 let defaultsKey = Defaults.Key(
                     key._defaultsName,
                     suite: key._defaultsSuite,
-                    default: key.defaultValue
+                    default: DefaultsStorable(key.defaultValue())
                 )
-                return Defaults[defaultsKey]
+                return Defaults[defaultsKey].value
             case .sql:
                 let fetchedValue: Value? = try? AnyStoredData.fetch(
                     ownerID: key.ownerID,
@@ -149,9 +171,9 @@ enum StoredValues {
                 let defaultsKey = Defaults.Key(
                     key._defaultsName,
                     suite: key._defaultsSuite,
-                    default: key.defaultValue
+                    default: DefaultsStorable(key.defaultValue())
                 )
-                Defaults[defaultsKey] = newValue
+                Defaults[defaultsKey] = DefaultsStorable(newValue)
             case .sql:
                 try? AnyStoredData.store(
                     value: newValue,

@@ -40,7 +40,6 @@ extension StoredValues.Keys {
 
 extension ServerState: Defaults.Serializable {}
 extension ServerState: Storable {}
-extension PublicSystemInfo: @retroactive Defaults.Serializable {}
 extension PublicSystemInfo: Storable {}
 
 extension StoredValues.Keys {

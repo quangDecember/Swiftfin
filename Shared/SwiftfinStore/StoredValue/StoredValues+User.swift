@@ -62,7 +62,6 @@ extension StoredValues.Keys {
 // MARK: values
 
 extension LocalUserAccessPolicy: Storable {}
-extension UserDto: @retroactive Defaults.Serializable {}
 extension UserDto: Storable {}
 extension UserState: Defaults.Serializable {}
 extension UserState: Storable {}

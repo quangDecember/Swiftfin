@@ -6,10 +6,8 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import Defaults
-
 /// A type that is able to be stored within:
 ///
 /// - `Defaults`: UserDefaults
 /// - `StoredValue`: AnyData
-protocol Storable: Codable, Defaults.Serializable {}
+protocol Storable: Codable {}

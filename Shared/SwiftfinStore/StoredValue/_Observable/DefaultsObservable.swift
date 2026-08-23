@@ -27,17 +27,17 @@ final class DefaultsObservable<Value: Storable>: ObservableObject, _StoredValueO
             let defaultsKey = Defaults.Key(
                 key._defaultsName,
                 suite: key._defaultsSuite,
-                default: key.defaultValue
+                default: DefaultsStorable(key.defaultValue())
             )
-            return Defaults[defaultsKey]
+            return Defaults[defaultsKey].value
         }
         set {
             let defaultsKey = Defaults.Key(
                 key._defaultsName,
                 suite: key._defaultsSuite,
-                default: key.defaultValue
+                default: DefaultsStorable(key.defaultValue())
             )
-            Defaults[defaultsKey] = newValue
+            Defaults[defaultsKey] = DefaultsStorable(newValue)
         }
     }
 
@@ -52,7 +52,7 @@ final class DefaultsObservable<Value: Storable>: ObservableObject, _StoredValueO
             let defaultsKey = Defaults.Key(
                 key._defaultsName,
                 suite: key._defaultsSuite,
-                default: key.defaultValue
+                default: DefaultsStorable(key.defaultValue())
             )
 
             for await _ in Defaults.updates(defaultsKey) {
