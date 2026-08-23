@@ -35,7 +35,7 @@ let binaryIncludesTVOS = binaryPlatform != "ios"
 
 /// The release tag whose `XCFramework` assets back the binary distribution.
 /// Set this to the tag being cut before publishing.
-let binaryRelease = "0.1.0"
+let binaryRelease = "binaries-0.0.34"
 
 /// Repository hosting the `XCFramework` release assets.
 let binaryHost = "https://github.com/quangDecember/Swiftfin/releases/download"
@@ -51,8 +51,8 @@ let placeholderChecksum = String(repeating: "0", count: 64)
 
 /// Checksums of the hosted `XCFramework` zips, one per platform module.
 /// Rewritten by `Scripts/build-xcframework.sh --update-manifest`.
-let swiftfinIOSChecksum = placeholderChecksum
-let swiftfinTVOSChecksum = placeholderChecksum
+let swiftfinIOSChecksum = "7aaabc86bc5dac09f4de03cc7a499a3018b0125875d8d15b668eb08882cdc1e5"
+let swiftfinTVOSChecksum = "993dc2fd8efc5bda26ed9a73bc3ef447b0f510991172cda8d8c5664850bab28e"
 
 // MARK: - VLCKit
 

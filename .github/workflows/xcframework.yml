@@ -133,7 +133,29 @@ jobs:
           git checkout -b "$branch"
           git add Package.swift
           git commit -m "Point binary distribution at $BINARY_TAG"
-          git push --force origin "$branch"
+
+          # `GITHUB_TOKEN` may not create or update anything under
+          # `.github/workflows/`, and pushing a branch that does not exist yet
+          # counts as creating every file on it — this workflow included. The
+          # push is rejected with "refusing to allow a GitHub App to create or
+          # update workflow ... without `workflows` permission".
+          #
+          # That permission cannot just be granted: there is no `workflows:` key
+          # for a job's `permissions:` block. The scope exists only for personal
+          # access tokens and GitHub Apps.
+          #
+          # So create the ref server-side first, pointing at the commit that was
+          # checked out. That introduces no file content, because the commit is
+          # already on the server. The push below is then an ordinary
+          # fast-forward whose diff touches `Package.swift` alone, which the
+          # token is allowed to make.
+          gh api "repos/$GH_REPO/git/refs" \
+            -f "ref=refs/heads/$branch" \
+            -f "sha=$GITHUB_SHA" >/dev/null 2>&1 \
+            || gh api --method PATCH "repos/$GH_REPO/git/refs/heads/$branch" \
+                 -f "sha=$GITHUB_SHA" -F force=true >/dev/null
+
+          git push origin "$branch"
 
           gh pr create \
             --base "${{ github.ref_name }}" \
