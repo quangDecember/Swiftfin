@@ -194,8 +194,8 @@ enum StoredValues {
             case .defaults:
                 let defaultsKey = Defaults.Key(
                     key._defaultsName,
-                    suite: key._defaultsSuite,
-                    default: DefaultsStorable(key.defaultValue())
+                    default: DefaultsStorable(key.defaultValue()),
+                    suite: key._defaultsSuite
                 )
                 return Defaults[defaultsKey].value
             case .sql:
@@ -215,8 +215,8 @@ enum StoredValues {
             case .defaults:
                 let defaultsKey = Defaults.Key(
                     key._defaultsName,
-                    suite: key._defaultsSuite,
-                    default: DefaultsStorable(key.defaultValue())
+                    default: DefaultsStorable(key.defaultValue()),
+                    suite: key._defaultsSuite
                 )
                 Defaults[defaultsKey] = DefaultsStorable(newValue)
             case .sql:

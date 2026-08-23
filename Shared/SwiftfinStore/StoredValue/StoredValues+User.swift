@@ -65,6 +65,7 @@ extension LocalUserAccessPolicy: Storable {}
 extension UserDto: StoredCodable {}
 extension UserState: Defaults.Serializable {}
 extension UserState: Storable {}
+extension Array: StoredCodable where Element: StoredCodable {}
 extension Array: Storable where Element: Storable {}
 extension Bool: Storable {}
 extension Int: Storable {}

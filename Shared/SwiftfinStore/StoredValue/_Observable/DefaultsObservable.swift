@@ -26,16 +26,16 @@ final class DefaultsObservable<Value: StoredCodable>: ObservableObject, _StoredV
         get {
             let defaultsKey = Defaults.Key(
                 key._defaultsName,
-                suite: key._defaultsSuite,
-                default: DefaultsStorable(key.defaultValue())
+                default: DefaultsStorable(key.defaultValue()),
+                suite: key._defaultsSuite
             )
             return Defaults[defaultsKey].value
         }
         set {
             let defaultsKey = Defaults.Key(
                 key._defaultsName,
-                suite: key._defaultsSuite,
-                default: DefaultsStorable(key.defaultValue())
+                default: DefaultsStorable(key.defaultValue()),
+                suite: key._defaultsSuite
             )
             Defaults[defaultsKey] = DefaultsStorable(newValue)
         }
@@ -51,8 +51,8 @@ final class DefaultsObservable<Value: StoredCodable>: ObservableObject, _StoredV
         task = .detached(priority: .userInitiated) { @MainActor [weak self, key] in
             let defaultsKey = Defaults.Key(
                 key._defaultsName,
-                suite: key._defaultsSuite,
-                default: DefaultsStorable(key.defaultValue())
+                default: DefaultsStorable(key.defaultValue()),
+                suite: key._defaultsSuite
             )
 
             for await _ in Defaults.updates(defaultsKey) {
