@@ -11,19 +11,7 @@ import SwiftUI
 @main
 struct SwiftfinApp: App {
 
-    init() {
-        Self.configure()
-
-        UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: UIColor.label]
-    }
-
     var body: some Scene {
-        WindowGroup {
-            OverlayToastView {
-                WithUserAuthentication {
-                    RootView()
-                }
-            }
-        }
+        SwiftfinScene()
     }
 }

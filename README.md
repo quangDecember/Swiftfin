@@ -43,6 +43,7 @@ Swiftfin provides detailed documentation to help you understand key aspects of t
 - [🎬 Media Playback](https://github.com/jellyfin/Swiftfin/blob/main/Documentation/players.md) — Learn about Swiftfin's **Native** and **Swiftfin** players and how their features vary.
 - [🧩 OS Version Support](https://github.com/jellyfin/Swiftfin/blob/main/Documentation/version.md) — Read about how we determine the **minimum supported OS** and which versions of iOS & tvOS are supported.
 - [🐞 Common Issues](https://github.com/jellyfin/Swiftfin/blob/main/Documentation/common_issues.md) — If you are experiencing an issue with Swiftfin, this is the best place to start.
+- [📦 Swiftfin as a Library](https://github.com/jellyfin/Swiftfin/blob/main/Documentation/swiftpm.md) — Embed Swiftfin in another app with **SwiftPM**, from source or as a prebuilt **XCFramework**.
 - [💜 Supporting Development](https://jellyfin.org/docs/general/contributing/direct-donations) — Learn how you can **support the project developers** and help keep Swiftfin improving.
 
 ## ⚙️ Development

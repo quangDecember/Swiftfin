@@ -1,5 +1,12 @@
 excluded:
   - build
+  # Added by the SwiftPM package: a root `Package.swift` means dependency
+  # sources land in `.build`, and `Sources` is symlinks to files already linted
+  # at their real paths.
+  - .build
+  - .swiftpm
+  - Carthage
+  - Sources
 
 only_rules:
   - custom_rules

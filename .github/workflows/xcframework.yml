@@ -1,0 +1,142 @@
+name: "XCFramework 📦"
+
+# Publishing a binary release is two-phase, and it has to be.
+#
+# `Package.swift` must contain the checksum of an asset that does not exist
+# until it has been built and uploaded — so the manifest cannot be correct at
+# the moment the version tag is created. Rather than tagging and then moving the
+# tag, the frameworks get their own immutable `binaries-<version>` release, and
+# this workflow opens a pull request pointing `Package.swift` at it.
+#
+#   1. Run this workflow with the version you are about to cut.
+#   2. Review and merge the pull request it opens.
+#   3. Tag that merge commit `<version>` and push.
+#
+# Consumers then resolve `<version>`, read the checksums from the manifest at
+# that tag, and download the assets from `binaries-<version>`.
+#
+# Prerequisite: the `vlckit-<version>` release must already exist. Runners have
+# no local VLCKit, so resolution downloads it from there. See
+# `Scripts/package-vlckit.sh`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version being cut, e.g. 0.2.0"
+        required: true
+        type: string
+      platform:
+        description: "Platform"
+        required: true
+        type: choice
+        default: All
+        options:
+          - All
+          - iOS
+          - tvOS
+
+jobs:
+  xcframework:
+    name: "XCFramework 📦"
+
+    runs-on: macos-26
+
+    env:
+      XCODE_VERSION: "26.6"
+      BINARY_TAG: "binaries-${{ github.event.inputs.version }}"
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      # Runners are tight on disk and each slice's DerivedData is several
+      # gigabytes, so reclaim what the image ships with that this build does not
+      # need.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /Applications/Xcode_1*.app
+          df -h /
+
+      - name: Resolve platform
+        id: platform
+        run: |
+          case "${{ github.event.inputs.platform }}" in
+            iOS) echo "value=ios" >> "$GITHUB_OUTPUT" ;;
+            tvOS) echo "value=tvos" >> "$GITHUB_OUTPUT" ;;
+            *) echo "value=all" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Build XCFrameworks
+        run: Scripts/build-xcframework.sh --platform ${{ steps.platform.outputs.value }} --update-manifest
+
+      - name: Publish frameworks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$BINARY_TAG" >/dev/null 2>&1 || \
+            gh release create "$BINARY_TAG" \
+              --prerelease \
+              --title "Binaries ${{ github.event.inputs.version }}" \
+              --notes "XCFramework assets for Swiftfin ${{ github.event.inputs.version }}, built with Xcode ${{ env.XCODE_VERSION }}.
+
+          These carry no \`.swiftinterface\`, so they only load in apps built with the same Swift compiler version."
+
+          gh release upload "$BINARY_TAG" build/xcframework/*.xcframework.zip --clobber
+
+      # `build-xcframework.sh --update-manifest` has already written the
+      # checksums; this points the manifest at the release holding them.
+      - name: Point manifest at the release
+        run: |
+          sed -i '' "s|^let binaryRelease = .*$|let binaryRelease = \"$BINARY_TAG\"|" Package.swift
+
+          grep -q "^let binaryRelease = \"$BINARY_TAG\"$" Package.swift \
+            || { echo "failed to set binaryRelease"; exit 1; }
+
+          git diff --stat Package.swift
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="release/${{ github.event.inputs.version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$branch"
+          git add Package.swift
+          git commit -m "Point binary distribution at $BINARY_TAG"
+          git push --force origin "$branch"
+
+          gh pr create \
+            --head "$branch" \
+            --title "Binary distribution ${{ github.event.inputs.version }}" \
+            --body "Checksums for the \`$BINARY_TAG\` assets, built with Xcode ${{ env.XCODE_VERSION }}.
+
+          Merge this, then tag the merge commit \`${{ github.event.inputs.version }}\`." \
+            || gh pr edit "$branch" --title "Binary distribution ${{ github.event.inputs.version }}"
+
+      - name: Summary
+        run: |
+          {
+            echo "### Swiftfin ${{ github.event.inputs.version }}"
+            echo
+            echo "Assets uploaded to \`$BINARY_TAG\`. Merge the pull request, then:"
+            echo
+            echo '```bash'
+            echo "git tag ${{ github.event.inputs.version }} && git push origin ${{ github.event.inputs.version }}"
+            echo '```'
+            echo
+            for file in build/xcframework/*.checksum; do
+              [ -f "$file" ] || continue
+              echo "- \`$(basename "$file" .checksum)\`: \`$(cat "$file")\`"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
