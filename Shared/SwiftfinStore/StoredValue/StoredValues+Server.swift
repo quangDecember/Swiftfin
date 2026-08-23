@@ -15,7 +15,7 @@ import JellyfinAPI
 
 extension StoredValues.Keys {
 
-    static func ServerKey<Value: Storable>(
+    static func ServerKey<Value: StoredCodable>(
         _ name: String? = nil,
         ownerID: String,
         field: String,
@@ -31,7 +31,7 @@ extension StoredValues.Keys {
         )
     }
 
-    static func ServerKey<Value: Storable>(always: Value) -> Key<Value> {
+    static func ServerKey<Value: StoredCodable>(always: Value) -> Key<Value> {
         Key(always: always)
     }
 }
@@ -40,7 +40,7 @@ extension StoredValues.Keys {
 
 extension ServerState: Defaults.Serializable {}
 extension ServerState: Storable {}
-extension PublicSystemInfo: Storable {}
+extension PublicSystemInfo: StoredCodable {}
 
 extension StoredValues.Keys {
 

@@ -11,7 +11,7 @@ import CoreStore
 import Logging
 
 @MainActor
-final class SQLObservable<Value: Storable>: ObservableObject, _StoredValueObservable {
+final class SQLObservable<Value: StoredCodable>: ObservableObject, _StoredValueObservable {
 
     let key: StoredValues.Key<Value>
 

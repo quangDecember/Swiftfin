@@ -21,9 +21,14 @@ import SwiftUI
 /// Adapts any `Storable` value to Defaults without making the value's type
 /// publicly conform to `Defaults.Serializable`.
 ///
-/// Encoding and decoding the value directly preserves the JSON representation
-/// used before this wrapper existed, so existing defaults migrate unchanged.
-struct DefaultsStorable<Value: Storable>: Codable, Defaults.Serializable {
+/// Its bridge accepts both the native property-list representation and the JSON
+/// string representation used by Defaults' built-in bridges, so existing
+/// values remain readable.
+struct DefaultsStorable<Value: StoredCodable>: Codable, Defaults.Serializable {
+
+    static var bridge: DefaultsStorableBridge<Value> {
+        DefaultsStorableBridge()
+    }
 
     let value: Value
 
@@ -40,9 +45,49 @@ struct DefaultsStorable<Value: Storable>: Codable, Defaults.Serializable {
     }
 }
 
+struct DefaultsStorableBridge<Value: StoredCodable>: Defaults.Bridge {
+
+    typealias Value = DefaultsStorable<Value>
+    typealias Serializable = Any
+
+    func serialize(_ value: DefaultsStorable<Value>?) -> Any? {
+        guard
+            let value,
+            let data = try? JSONEncoder().encode(value.value)
+        else {
+            return nil
+        }
+
+        return try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)
+    }
+
+    func deserialize(_ object: Any?) -> DefaultsStorable<Value>? {
+        guard let object else { return nil }
+
+        // Defaults' top-level Codable bridge stores a JSON string. Try that
+        // form first before interpreting a native String as a JSON fragment.
+        if
+            let string = object as? String,
+            let value = try? JSONDecoder().decode(Value.self, from: Data(string.utf8))
+        {
+            return DefaultsStorable(value)
+        }
+
+        guard
+            JSONSerialization.isValidJSONObject(object) || object is NSString || object is NSNumber,
+            let data = try? JSONSerialization.data(withJSONObject: object, options: .fragmentsAllowed),
+            let value = try? JSONDecoder().decode(Value.self, from: data)
+        else {
+            return nil
+        }
+
+        return DefaultsStorable(value)
+    }
+}
+
 /// A property wrapper for a stored `AnyData` object.
 @propertyWrapper
-struct StoredValue<Value: Storable>: DynamicProperty {
+struct StoredValue<Value: StoredCodable>: DynamicProperty {
 
     @ObservedObject
     private var observable: _GenericStoredValueObservation<Value>
@@ -85,7 +130,7 @@ enum StoredValues {
     ///
     /// - Important: if `name` or `ownerID` are empty, the default value
     ///              will always be retrieved and nothing will be set.
-    final class Key<Value: Storable>: _AnyKey {
+    final class Key<Value: StoredCodable>: _AnyKey {
 
         enum StorageDestination {
             case defaults
@@ -141,7 +186,7 @@ enum StoredValues {
         }
     }
 
-    static subscript<Value: Codable>(key: Key<Value>) -> Value {
+    static subscript<Value: StoredCodable>(key: Key<Value>) -> Value {
         get {
             guard key.name.isNotEmpty, key.ownerID.isNotEmpty else { return key.defaultValue() }
 

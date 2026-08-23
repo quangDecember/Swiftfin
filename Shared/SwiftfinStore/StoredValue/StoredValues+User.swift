@@ -21,7 +21,7 @@ extension StoredValues.Keys {
     /// Construct a key where `ownerID` is the id of the user in the
     /// current user session, or always returns the default if there
     /// isn't a current session user.
-    static func CurrentUserKey<Value: Codable>(
+    static func CurrentUserKey<Value: StoredCodable>(
         _ name: String? = nil,
         field: String,
         default defaultValue: Value,
@@ -40,7 +40,7 @@ extension StoredValues.Keys {
         )
     }
 
-    static func UserKey<Value: Codable>(
+    static func UserKey<Value: StoredCodable>(
         _ name: String? = nil,
         ownerID: String,
         field: String,
@@ -54,7 +54,7 @@ extension StoredValues.Keys {
         )
     }
 
-    static func UserKey<Value: Codable>(always: Value) -> Key<Value> {
+    static func UserKey<Value: StoredCodable>(always: Value) -> Key<Value> {
         Key(always: always)
     }
 }
@@ -62,7 +62,7 @@ extension StoredValues.Keys {
 // MARK: values
 
 extension LocalUserAccessPolicy: Storable {}
-extension UserDto: Storable {}
+extension UserDto: StoredCodable {}
 extension UserState: Defaults.Serializable {}
 extension UserState: Storable {}
 extension Array: Storable where Element: Storable {}

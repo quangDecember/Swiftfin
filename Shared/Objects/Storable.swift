@@ -6,8 +6,16 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-/// A type that is able to be stored within:
+import Defaults
+
+/// A Codable value that can be stored by `StoredValue`.
+protocol StoredCodable: Codable {}
+
+/// A Swiftfin-owned type that is able to be stored within:
 ///
 /// - `Defaults`: UserDefaults
 /// - `StoredValue`: AnyData
-protocol Storable: Codable {}
+///
+/// External Codable types use `StoredCodable` directly so Swiftfin does not
+/// publish retroactive `Defaults.Serializable` conformances for them.
+protocol Storable: StoredCodable, Defaults.Serializable {}

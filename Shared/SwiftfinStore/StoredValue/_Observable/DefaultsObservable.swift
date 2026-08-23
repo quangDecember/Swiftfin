@@ -10,7 +10,7 @@ import Combine
 import Defaults
 
 @MainActor
-final class DefaultsObservable<Value: Storable>: ObservableObject, _StoredValueObservable {
+final class DefaultsObservable<Value: StoredCodable>: ObservableObject, _StoredValueObservable {
 
     private var onObjectChanged: (() -> Void)?
     private var task: Task<Void, Never>?

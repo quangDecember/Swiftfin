@@ -11,7 +11,7 @@ import Foundation
 
 @MainActor
 protocol _StoredValueObservable<Value>: ObservableObject {
-    associatedtype Value: Storable
+    associatedtype Value: StoredCodable
 
     var key: StoredValues.Key<Value> { get }
     var value: Value { get set }
@@ -20,7 +20,7 @@ protocol _StoredValueObservable<Value>: ObservableObject {
 }
 
 @MainActor
-final class _GenericStoredValueObservation<Value: Storable>: ObservableObject {
+final class _GenericStoredValueObservation<Value: StoredCodable>: ObservableObject {
 
     private let key: StoredValues.Key<Value>
     private var observable: (any _StoredValueObservable<Value>)!
