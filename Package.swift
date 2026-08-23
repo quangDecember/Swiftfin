@@ -69,8 +69,8 @@ let vlcKitVersion = "3.7.2"
 
 /// Checksums of the repackaged VLCKit zips.
 /// Rewritten by `Scripts/package-vlckit.sh --update-manifest`.
-let mobileVLCKitChecksum = "8d4673d7bffe2324152eedf150c8521c769aa493cb9540aeeca9410d46dde1fd"
-let tvVLCKitChecksum = "3d305018e54b80e096eed36ee73f9d416bbeada269170831a45d82b9c568837f"
+let mobileVLCKitChecksum = "4fc86288a81f126a56b672ecc6ffe9d27d8c396fbb40c89480a98d191aed8041"
+let tvVLCKitChecksum = "8e91c7e9eefd769d3898dc57ee957f7cd8888cc312d6d43786fa56a03539339a"
 
 func vlcKitTarget(name: String, checksum: String) -> Target {
     // `Scripts/package-vlckit.sh` leaves the extracted frameworks behind. Using

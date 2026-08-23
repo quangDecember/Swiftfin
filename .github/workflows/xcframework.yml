@@ -45,6 +45,9 @@ jobs:
     env:
       XCODE_VERSION: "26.6"
       BINARY_TAG: "binaries-${{ github.event.inputs.version }}"
+      # Without this, `gh` on a fork resolves to the upstream repository: the
+      # release would be created there and the pull request would target it.
+      GH_REPO: ${{ github.repository }}
 
     permissions:
       contents: write
@@ -106,6 +109,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # The manifest change belongs on the branch being released from, which
+          # is not necessarily the default branch — the workflow only has to
+          # *exist* there to be dispatchable.
           branch="release/${{ github.event.inputs.version }}"
 
           git config user.name "github-actions[bot]"
@@ -117,6 +123,7 @@ jobs:
           git push --force origin "$branch"
 
           gh pr create \
+            --base "${{ github.ref_name }}" \
             --head "$branch" \
             --title "Binary distribution ${{ github.event.inputs.version }}" \
             --body "Checksums for the \`$BINARY_TAG\` assets, built with Xcode ${{ env.XCODE_VERSION }}.

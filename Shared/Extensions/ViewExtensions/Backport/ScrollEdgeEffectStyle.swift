@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-enum ScrollEdgeEffectStyle: Hashable, Sendable {
+enum ScrollEdgeEffectStyle: Hashable {
 
     case automatic
     case hard

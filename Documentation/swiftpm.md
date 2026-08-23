@@ -59,11 +59,20 @@ a `*-binary/` directory, which SwiftPM cannot consume.
 zips and records their checksums:
 
 ```bash
-Scripts/package-vlckit.sh --update-manifest
+Scripts/package-vlckit.sh --update-manifest --publish
 ```
 
-Run it once per VLCKit version and upload the two zips to the matching
-`vlckit-<version>` tag. It also leaves the extracted frameworks in
+Run that once per VLCKit version. It downloads, repackages, records the
+checksums and uploads to the `vlckit-<version>` tag — targeting the repository
+`binaryHost` names, since `gh` on a fork resolves to upstream unless told
+otherwise.
+
+Do all three in one run. Zipping is not reproducible: repackaging the same
+VLCKit release twice produces different bytes and a different checksum, so
+uploading a zip that was not the one the manifest recorded fails resolution
+with a checksum mismatch. The script refuses to finish if the zips on disk and
+`Package.swift` disagree, and `--reuse` lets a later run publish the same zips
+rather than rebuilding them. It also leaves the extracted frameworks in
 `build/vlckit`, and `Package.swift` prefers those over the hosted zips while
 they are there — so the package builds before the zips have been published, and
 a machine that already has VLCKit does not re-download it.
@@ -262,18 +271,35 @@ points at it.
 
 ### With GitHub Actions
 
-1. Run the **XCFramework 📦** workflow, giving it the version you are cutting.
-   It builds the frameworks, uploads them to a `binaries-<version>` prerelease,
-   and opens a pull request updating `binaryRelease` and both checksums.
+`workflow_dispatch` workflows are only dispatchable once the file exists on the
+repository's **default branch** — GitHub will not offer a workflow it cannot see
+there, whatever `--ref` you pass. So the branch carrying this work has to reach
+your fork's default branch before the workflow can be run at all.
+
+On a fork, also check Settings → Actions → General: Actions are disabled by
+default on forks, and workflow permissions must be **Read and write** for the
+release upload and pull request to succeed.
+
+1. Run the **XCFramework 📦** workflow against the branch you are releasing:
+
+   ```bash
+   gh workflow run xcframework.yml --repo <owner>/Swiftfin \
+       --ref <branch> -f version=0.2.0 -f platform=All
+   ```
+
+   It builds the frameworks, uploads them to a `binaries-0.2.0` prerelease, and
+   opens a pull request against `<branch>` updating `binaryRelease` and both
+   checksums.
 2. Review and merge that pull request.
 3. Tag the merge commit and push:
 
    ```bash
-   git tag 0.2.0 && git push origin 0.2.0
+   git tag 0.2.0 && git push <remote> 0.2.0
    ```
 
 Consumers resolve `0.2.0`, read the checksums from the manifest at that tag, and
-download the assets from `binaries-0.2.0`.
+download the assets from `binaries-0.2.0`. The release branch never has to be the
+default branch — only the workflow file does.
 
 ### By hand
 
@@ -282,8 +308,9 @@ Scripts/build-xcframework.sh --update-manifest
 ```
 
 Then upload `build/xcframework/*.xcframework.zip` to a `binaries-<version>`
-release, set `binaryRelease` in `Package.swift` to that tag, commit, and tag the
-version. Note the Xcode version in the release notes — the frameworks carry no
+release on the repository `binaryHost` points at — pass `--repo`, since `gh`
+resolves to upstream on a fork — set `binaryRelease` in `Package.swift` to that
+tag, commit, and tag the version. Note the Xcode version in the release notes — the frameworks carry no
 `.swiftinterface`, so consumers need a matching compiler.
 
 The checksums match the exact zips the script produced. Rebuilding them

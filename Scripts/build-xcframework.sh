@@ -25,6 +25,10 @@
 #                          apps built with the same Swift compiler version.
 #     --update-manifest    Rewrite the checksums in `Package.swift` to match the
 #                          zips just produced.
+#     --ignore-local-vlckit
+#                          Resolve VLCKit from its published zips even when
+#                          `build/vlckit` exists locally. This is what CI does,
+#                          so use it to reproduce a CI failure on your machine.
 
 set -euo pipefail
 
@@ -35,6 +39,7 @@ platform="all"
 output="$repository/build/xcframework"
 library_evolution="NO"
 update_manifest="no"
+ignore_local_vlckit="no"
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -42,6 +47,7 @@ while [ $# -gt 0 ]; do
         --output) output="$2"; shift 2 ;;
         --library-evolution) library_evolution="YES"; shift ;;
         --update-manifest) update_manifest="yes"; shift ;;
+        --ignore-local-vlckit) ignore_local_vlckit="yes"; shift ;;
         *) echo "unknown option: $1" >&2; exit 1 ;;
     esac
 done
@@ -60,9 +66,42 @@ done
 
 # `Package.swift` prefers a locally extracted VLCKit over the hosted zips, and
 # looks for it relative to the manifest — which is the staging directory here.
-if [ -d "$repository/build/vlckit" ]; then
+if [ -d "$repository/build/vlckit" ] && [ "$ignore_local_vlckit" = "no" ]; then
     mkdir -p "$staging/build"
     ln -s "$repository/build/vlckit" "$staging/build/vlckit"
+    using_local_vlckit="yes"
+else
+    using_local_vlckit="no"
+fi
+
+# Without a local copy, resolution downloads VLCKit from the release named in
+# `Package.swift`. That release is published separately and is easy to forget,
+# and xcodebuild reports its absence only as "Could not resolve package
+# dependencies" — so check it up front and say what to do about it.
+if [ "$using_local_vlckit" = "no" ]; then
+    vlckit_version="$(grep '^let vlcKitVersion = ' Package.swift | /usr/bin/sed -E 's|.*"(.*)".*|\1|')"
+    vlckit_base="$(
+        grep '^let binaryHost = ' Package.swift | /usr/bin/sed -E 's|.*"(.*)".*|\1|'
+    )/vlckit-$vlckit_version"
+
+    for framework in MobileVLCKit TVVLCKit; do
+        status="$(curl -sIL -o /dev/null -w '%{http_code}' "$vlckit_base/$framework.xcframework.zip" || echo 000)"
+
+        if [ "$status" != "200" ]; then
+            cat >&2 <<EOF
+$framework.xcframework.zip is not published ($vlckit_base returned $status).
+
+VLCKit is hosted separately from Swiftfin's own frameworks and has to be
+published once per VLCKit version:
+
+    Scripts/package-vlckit.sh --update-manifest
+
+then upload the two zips it produces to the vlckit-$vlckit_version release tag.
+The script prints the exact command.
+EOF
+            exit 1
+        fi
+    done
 fi
 
 # Artifacts are replaced, but DerivedData is kept so that re-running after a
@@ -106,8 +145,17 @@ build_slice() {
         -derivedDataPath "$derived" \
         BUILD_LIBRARY_FOR_DISTRIBUTION="$library_evolution" \
         > "$log" 2>&1 || {
-            echo "build failed; errors from $log:" >&2
+            echo "build failed; from $log:" >&2
+
+            # Resolution failures put the reason on the lines *after* the
+            # "Could not resolve" header, so grepping for `error:` alone drops
+            # the only part that says what went wrong.
             grep -E "error:" "$log" | sort -u | head -20 >&2
+            /usr/bin/sed -n '/Could not resolve/,/^$/p' "$log" | head -20 >&2
+
+            echo "--- last 20 lines ---" >&2
+            tail -20 "$log" >&2
+
             exit 1
         }
 
