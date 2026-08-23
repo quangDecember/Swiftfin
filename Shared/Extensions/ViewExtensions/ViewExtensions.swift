@@ -7,7 +7,6 @@
 //
 
 import Combine
-import Defaults
 import Foundation
 import SwiftUI
 
@@ -92,13 +91,11 @@ extension View {
     }
 
     @ViewBuilder
-    @inlinable
     func enabled(_ enabled: Bool) -> some View {
         disabled(!enabled)
     }
 
     @ViewBuilder
-    @inlinable
     func eraseToAnyView() -> AnyView {
         AnyView(self)
     }
@@ -130,7 +127,6 @@ extension View {
     }
 
     @ViewBuilder
-    @inlinable
     func hidden(_ isHidden: Bool) -> some View {
         if isHidden {
             hidden()
@@ -142,7 +138,6 @@ extension View {
     /// - Important: Do *not* use this modifier for dynamically showing/hiding views.
     ///              Instead, use a native `if` statement.
     @ViewBuilder
-    @inlinable
     func `if`(_ condition: Bool, @ViewBuilder transform: (Self) -> some View) -> some View {
         if condition {
             transform(self)
@@ -154,7 +149,6 @@ extension View {
     /// - Important: Do *not* use this modifier for dynamically showing/hiding views.
     ///              Instead, use a native `if/else` statement.
     @ViewBuilder
-    @inlinable
     func `if`<Content: View>(
         _ condition: Bool,
         @ViewBuilder transformIf: (Self) -> Content,
@@ -170,7 +164,6 @@ extension View {
     /// - Important: Do *not* use this modifier for dynamically showing/hiding views.
     ///              Instead, use a native `if let` statement.
     @ViewBuilder
-    @inlinable
     func ifLet<Value>(
         _ value: Value?,
         @ViewBuilder transform: (Self, Value) -> some View
@@ -185,7 +178,6 @@ extension View {
     /// - Important: Do *not* use this modifier for dynamically showing/hiding views.
     ///              Instead, use a native `if let/else` statement.
     @ViewBuilder
-    @inlinable
     func ifLet<Value, Content: View>(
         _ value: Value?,
         @ViewBuilder transformIf: (Self, Value) -> Content,
@@ -228,7 +220,6 @@ extension View {
     /// - Important: Do not use this to add or remove a view from the view heirarchy.
     ///              Use a conditional statement instead.
     @ViewBuilder
-    @inlinable
     func isVisible(_ isVisible: Bool) -> some View {
         opacity(isVisible ? 1 : 0)
     }

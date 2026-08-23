@@ -8,7 +8,6 @@
 
 import Foundation
 
-@inlinable
 func abs(_ d: Duration) -> Duration {
     d < .zero ? (.zero - d) : d
 }

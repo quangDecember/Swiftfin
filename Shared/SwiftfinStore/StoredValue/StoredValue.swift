@@ -76,19 +76,16 @@ enum StoredValues {
         let ownerID: String
         let storage: StorageDestination
 
-        var _defaultKey: Defaults.Key<Value> {
-
-            let resolvedName: String = if field == name || field == nil {
+        var _defaultsName: String {
+            if field == name || field == nil {
                 name
             } else {
                 "\(field!)-\(name)"
             }
+        }
 
-            return Defaults.Key(
-                resolvedName,
-                suite: UserDefaults(suiteName: ownerID)!,
-                default: defaultValue
-            )
+        var _defaultsSuite: UserDefaults {
+            UserDefaults(suiteName: ownerID)!
         }
 
         init(
@@ -128,7 +125,12 @@ enum StoredValues {
 
             switch key.storage {
             case .defaults:
-                return Defaults[key._defaultKey]
+                let defaultsKey = Defaults.Key(
+                    key._defaultsName,
+                    suite: key._defaultsSuite,
+                    default: key.defaultValue
+                )
+                return Defaults[defaultsKey]
             case .sql:
                 let fetchedValue: Value? = try? AnyStoredData.fetch(
                     ownerID: key.ownerID,
@@ -144,7 +146,12 @@ enum StoredValues {
 
             switch key.storage {
             case .defaults:
-                Defaults[key._defaultKey] = newValue
+                let defaultsKey = Defaults.Key(
+                    key._defaultsName,
+                    suite: key._defaultsSuite,
+                    default: key.defaultValue
+                )
+                Defaults[defaultsKey] = newValue
             case .sql:
                 try? AnyStoredData.store(
                     value: newValue,

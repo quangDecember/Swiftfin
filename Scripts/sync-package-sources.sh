@@ -87,6 +87,12 @@ sync_target() {
 
     link_tree "$platform/Resources/Assets.xcassets" "$dir/Assets.xcassets"
 
+    # App icon sets only work from the host application's bundle. Compiling
+    # them as package resources expands about 11 MB of PNGs into an ~85 MB
+    # Assets.car that an embedding app cannot use. The small top-level image
+    # sets used to preview those icons remain in the package catalog.
+    rm -rf "$dir/Assets.xcassets/AppIcons"
+
     echo "$target: linked $platform"
 }
 
@@ -107,6 +113,7 @@ for entry in Swiftfin/Resources/Assets.xcassets/*/; do
     name="$(basename "$entry")"
 
     [ "$name" = "Contents.json" ] && continue
+    [ "$name" = "AppIcons" ] && continue
     [ -e "$merged/$name" ] && continue
 
     link_tree "Swiftfin/Resources/Assets.xcassets/$name" "$merged/$name"

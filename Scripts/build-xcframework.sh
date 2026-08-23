@@ -14,15 +14,8 @@
 # Usage:
 #     Scripts/build-xcframework.sh [--platform ios|tvos|all]
 #                                  [--output <dir>]
-#                                  [--library-evolution]
 #                                  [--update-manifest]
 #
-#     --library-evolution  Build with `BUILD_LIBRARY_FOR_DISTRIBUTION=YES`.
-#                          Off by default because swift-nio's
-#                          `_NIODataStructures` does not compile with library
-#                          evolution enabled, and it is a transitive dependency
-#                          through Pulse. Without it the frameworks only load in
-#                          apps built with the same Swift compiler version.
 #     --update-manifest    Rewrite the checksums in `Package.swift` to match the
 #                          zips just produced.
 #     --ignore-local-vlckit
@@ -37,7 +30,6 @@ repository="$(pwd)"
 
 platform="all"
 output="$repository/build/xcframework"
-library_evolution="NO"
 update_manifest="no"
 ignore_local_vlckit="no"
 
@@ -45,7 +37,6 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --platform) platform="$2"; shift 2 ;;
         --output) output="$2"; shift 2 ;;
-        --library-evolution) library_evolution="YES"; shift ;;
         --update-manifest) update_manifest="yes"; shift ;;
         --ignore-local-vlckit) ignore_local_vlckit="yes"; shift ;;
         *) echo "unknown option: $1" >&2; exit 1 ;;
@@ -229,20 +220,19 @@ build_slice() {
     # sees this, while a fresh runner fails every build with "Macro ... must be
     # enabled before it can be used".
     #
-    # `SWIFT_VERIFY_EMITTED_MODULE_INTERFACE=NO`: belt and braces. `Package.swift`
-    # no longer passes `-emit-module-interface`, so there should be no interface
-    # to verify — but Xcode 26.6 schedules the verification task off flags it
-    # finds in `OTHER_SWIFT_FLAGS`, and `-enable-library-evolution` is still
-    # there. Xcode 27 never scheduled it at all, which is why this only ever
-    # broke on CI.
+    # Library distribution is deliberately not enabled as a build setting: that
+    # setting propagates to the whole dependency graph, where swift-nio's
+    # `_NIODataStructures` does not compile with library evolution. Package.swift
+    # applies the evolution and interface-emission flags only to Swiftfin's own
+    # modules, and interface verification stays enabled here as the release gate.
     SWIFTFIN_XCFRAMEWORK=1 xcodebuild build \
         -scheme "$module" \
         -configuration Release \
         -destination "$destination" \
         -derivedDataPath "$derived" \
         -skipMacroValidation \
-        SWIFT_VERIFY_EMITTED_MODULE_INTERFACE=NO \
-        BUILD_LIBRARY_FOR_DISTRIBUTION="$library_evolution" \
+        SWIFT_VERIFY_EMITTED_MODULE_INTERFACE=YES \
+        BUILD_LIBRARY_FOR_DISTRIBUTION=NO \
         2>&1 | tee "$log" | /usr/bin/python3 -u "$progress_filter" || {
             echo "build failed; from $log:" >&2
 
@@ -275,6 +265,12 @@ build_slice() {
     mkdir -p "$framework/Modules"
     cp -R "$products/$module.swiftmodule" "$framework/Modules/"
 
+    local module_dir="$framework/Modules/$module.swiftmodule"
+    if ! find "$module_dir" -maxdepth 1 -type f -name '*.swiftinterface' -print -quit | grep -q .; then
+        echo "$module $destination produced no .swiftinterface" >&2
+        exit 1
+    fi
+
     # `Bundle.module` looks in the enclosing framework's resource directory, so
     # every package resource bundle — Swiftfin's own and its dependencies' —
     # has to sit inside the framework for images, fonts and translations to
@@ -300,13 +296,6 @@ build_xcframework() {
         framework="$(build_slice "$module" "$destination" "$products_dir")"
         args+=(-framework "$framework")
     done
-
-    # Without library evolution the slices carry no `.swiftinterface`, and
-    # `-create-xcframework` refuses to package them unless the result is marked
-    # as internal distribution.
-    if [ "$library_evolution" = "NO" ]; then
-        args+=(-allow-internal-distribution)
-    fi
 
     rm -rf "$output/$module.xcframework" "$output/$module.xcframework.zip"
     xcodebuild -create-xcframework "${args[@]}" -output "$output/$module.xcframework" > /dev/null

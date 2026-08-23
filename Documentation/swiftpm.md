@@ -9,7 +9,7 @@ The package ships in two forms:
 | --- | --- | --- |
 | Swiftfin's own ~700 files | Compiled by you | Pre-built `XCFramework` |
 | Dependencies | Compiled by you | Compiled by you |
-| Toolchain | Any Xcode that can build Swiftfin | Must match the Xcode that produced the release |
+| Toolchain | Any Xcode that can build Swiftfin | Same or newer compatible Swift compiler |
 | Debuggable | Yes, sources are right there | Dependencies only |
 
 Use **source** while working on Swiftfin itself, and **binary** to integrate a
@@ -83,11 +83,6 @@ a machine that already has VLCKit does not re-download it.
 
 ## Binary integration
 
-> The URLs and checksums in `Package.swift` are placeholders until a release is
-> actually published. Run the steps under
-> [Cutting a binary release](#cutting-a-binary-release) first; until then, only
-> source integration works from a clean checkout.
-
 Add the package and set `SWIFTFIN_BINARY` in the environment that evaluates the
 manifest — `ios`, `tvos`, or `1` for both:
 
@@ -98,40 +93,30 @@ SWIFTFIN_BINARY=ios xcodebuild -scheme YourApp build
 The manifest then replaces Swiftfin's own source targets with `XCFramework`
 binary targets.
 
-Name a single platform when you only ship one. SwiftPM downloads every
-`binaryTarget` while resolving, before it knows what you are building for, so
-`SWIFTFIN_BINARY=1` fetches both platforms' frameworks and both VLCKit builds —
-well over a gigabyte.
+The iOS and tvOS frameworks are separate release zips. Name a single platform
+when you only ship one: SwiftPM downloads every `binaryTarget` while resolving,
+before it knows what you are building for, so `SWIFTFIN_BINARY=1` fetches both
+platforms' frameworks and both VLCKit builds.
 
 If `build/xcframework/SwiftfinIOS.xcframework` exists locally it is used instead
 of the release download, so a release can be exercised before it is published.
 
-> The frameworks carry no `.swiftinterface`, so a release only loads in apps
-> built with the same Swift compiler version it was produced with. Each release
-> records that version.
+Every framework slice carries a verified `.swiftinterface`. A consumer can
+therefore use a newer compatible Swift compiler instead of requiring the exact
+compiler-specific `.swiftmodule` that produced the release.
 
-### What binary mode does not save
+### Dependency boundary
 
-The dependency graph is still resolved and compiled. A binary `.swiftmodule`
-records every module it was built against, and Swift has to load each one to
-import it, so the modules have to come from somewhere. Shipping them inside the
-framework does not help: Swift finds a module `X` only as `X.swiftmodule` on an
-import search path or as `X.framework/Modules/X.swiftmodule` on a framework
-search path, and neither applies to modules parked inside another framework.
+Swiftfin and its implementation dependencies are statically linked into each
+dynamic framework. A textual interface still has to name modules used by
+Swiftfin's public API, so the package keeps those products available to the
+consumer. Modules that are implementation details do not need to be exposed by
+the interface.
 
-The way out is library evolution. A resilient framework ships a
-`.swiftinterface` naming only what its public API mentions — for Swiftfin, the
-Jellyfin SDK and SwiftUI — and consumers need nothing else. Swiftfin's own
-modules do compile with `-enable-library-evolution`; what blocks it is that
-`.swiftinterface` emission is driven by `BUILD_LIBRARY_FOR_DISTRIBUTION`, which
-xcodebuild applies to every target in the graph, and swift-nio's
-`_NIODataStructures` fails to compile under it with the current toolchain.
-swift-nio arrives transitively through Pulse.
-
-So binary mode saves compiling Swiftfin itself, which is the single largest
-target, and nothing more. Pass `--library-evolution` to
-`Scripts/build-xcframework.sh` to try the lighter variant once that dependency
-compiles.
+Library evolution is applied only to `SwiftfinIOS` and `SwiftfinTVOS` with
+target-specific Swift flags. `BUILD_LIBRARY_FOR_DISTRIBUTION` is deliberately
+left off because Xcode propagates it to the entire graph and the current
+swift-nio `_NIODataStructures` target does not compile with it.
 
 One consequence to be aware of: the dependencies end up in the app twice — once
 statically linked inside `SwiftfinIOS.framework`, once compiled by you. They
@@ -226,8 +211,11 @@ cheaper.
 ### What does not carry over
 
 Alternate app icons are addressed through `setAlternateIconName`, which only
-reads icons from the host app's own bundle. The icon picker in settings will not
-find Swiftfin's icons unless the host app declares them itself.
+reads icons from the host app's own bundle. The package therefore omits the app
+icon sets from its compiled resource catalog; including them added roughly 85 MB
+per device framework while still being unusable by the host. The small preview
+image sets remain. A host that offers alternate icons must declare the actual
+icons in its own asset catalog and `Info.plist`.
 
 ## Working on the package
 
@@ -244,7 +232,9 @@ Scripts/sync-package-sources.sh
 
 Asset catalogs are mirrored file by file rather than linked wholesale, because
 `actool` does not follow directory symlinks — a linked `.xcassets` compiles to
-nothing at all, silently, and every image comes up empty at runtime.
+nothing at all, silently, and every image comes up empty at runtime. The sync
+script removes `AppIcons` from these mirrors after linking them; it never edits
+the app targets' original catalogs.
 
 Two lists have to stay in step with `Swiftfin.xcodeproj` by hand:
 
@@ -284,12 +274,12 @@ release upload and pull request to succeed.
 
    ```bash
    gh workflow run xcframework.yml --repo <owner>/Swiftfin \
-       --ref <branch> -f version=0.2.0 -f platform=All
+       --ref <branch> -f version=0.2.0
    ```
 
-   It builds the frameworks, uploads them to a `binaries-0.2.0` prerelease, and
-   opens a pull request against `<branch>` updating `binaryRelease` and both
-   checksums.
+   It builds both platforms, uploads two independent zips to a
+   `binaries-0.2.0` prerelease, and opens a pull request against `<branch>`
+   updating `binaryRelease` and both checksums.
 2. Review and merge that pull request.
 3. Tag the merge commit and push:
 
@@ -310,8 +300,9 @@ Scripts/build-xcframework.sh --update-manifest
 Then upload `build/xcframework/*.xcframework.zip` to a `binaries-<version>`
 release on the repository `binaryHost` points at — pass `--repo`, since `gh`
 resolves to upstream on a fork — set `binaryRelease` in `Package.swift` to that
-tag, commit, and tag the version. Note the Xcode version in the release notes — the frameworks carry no
-`.swiftinterface`, so consumers need a matching compiler.
+tag, commit, and tag the version. Note the Xcode version in the release notes.
+The build fails if any device or simulator slice does not contain a verified
+`.swiftinterface`.
 
 The checksums match the exact zips the script produced. Rebuilding them
 elsewhere yields different bytes, so upload those files rather than

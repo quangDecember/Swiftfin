@@ -24,10 +24,20 @@ final class DefaultsObservable<Value: Storable>: ObservableObject, _StoredValueO
 
     var value: Value {
         get {
-            Defaults[key._defaultKey]
+            let defaultsKey = Defaults.Key(
+                key._defaultsName,
+                suite: key._defaultsSuite,
+                default: key.defaultValue
+            )
+            return Defaults[defaultsKey]
         }
         set {
-            Defaults[key._defaultKey] = newValue
+            let defaultsKey = Defaults.Key(
+                key._defaultsName,
+                suite: key._defaultsSuite,
+                default: key.defaultValue
+            )
+            Defaults[defaultsKey] = newValue
         }
     }
 
@@ -39,7 +49,13 @@ final class DefaultsObservable<Value: Storable>: ObservableObject, _StoredValueO
         task?.cancel()
 
         task = .detached(priority: .userInitiated) { @MainActor [weak self, key] in
-            for await _ in Defaults.updates(key._defaultKey) {
+            let defaultsKey = Defaults.Key(
+                key._defaultsName,
+                suite: key._defaultsSuite,
+                default: key.defaultValue
+            )
+
+            for await _ in Defaults.updates(defaultsKey) {
                 guard let self else { return }
 
                 self.onObjectChanged?()

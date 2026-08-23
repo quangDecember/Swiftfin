@@ -26,15 +26,6 @@ on:
         description: "Version being cut, e.g. 0.2.0"
         required: true
         type: string
-      platform:
-        description: "Platform"
-        required: true
-        type: choice
-        default: All
-        options:
-          - All
-          - iOS
-          - tvOS
 
 jobs:
   xcframework:
@@ -57,6 +48,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Creating a new branch by pushing a commit based on this workflow is
+      # rejected because GITHUB_TOKEN has no `workflows` scope. Creating the
+      # ref at an existing server-side commit changes no workflow content; the
+      # later Package.swift-only commit can then be pushed as a fast-forward.
+      # Do this before the hour-long build so a permission problem fails fast.
+      - name: Prepare release branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="release/${{ github.event.inputs.version }}"
+
+          gh api "repos/$GH_REPO/git/refs" \
+            -f "ref=refs/heads/$branch" \
+            -f "sha=$GITHUB_SHA" >/dev/null 2>&1 \
+            || gh api --method PATCH "repos/$GH_REPO/git/refs/heads/$branch" \
+                 -f "sha=$GITHUB_SHA" -F force=true >/dev/null
+
       - name: Select Xcode
         run: sudo xcode-select -switch /Applications/Xcode_${{ env.XCODE_VERSION }}.app
 
@@ -68,17 +76,8 @@ jobs:
           sudo rm -rf /Applications/Xcode_1*.app
           df -h /
 
-      - name: Resolve platform
-        id: platform
-        run: |
-          case "${{ github.event.inputs.platform }}" in
-            iOS) echo "value=ios" >> "$GITHUB_OUTPUT" ;;
-            tvOS) echo "value=tvos" >> "$GITHUB_OUTPUT" ;;
-            *) echo "value=all" >> "$GITHUB_OUTPUT" ;;
-          esac
-
       - name: Build XCFrameworks
-        run: Scripts/build-xcframework.sh --platform ${{ steps.platform.outputs.value }} --update-manifest
+        run: Scripts/build-xcframework.sh --platform all --update-manifest
 
       # The script streams a target-by-target summary to the console and keeps
       # the full ~11MB xcodebuild output per slice on disk. On failure it prints
@@ -103,7 +102,7 @@ jobs:
               --title "Binaries ${{ github.event.inputs.version }}" \
               --notes "XCFramework assets for Swiftfin ${{ github.event.inputs.version }}, built with Xcode ${{ env.XCODE_VERSION }}.
 
-          These carry no \`.swiftinterface\`, so they only load in apps built with the same Swift compiler version."
+          Every device and simulator slice carries a verified \`.swiftinterface\` for Swift compiler compatibility."
 
           gh release upload "$BINARY_TAG" build/xcframework/*.xcframework.zip --clobber
 
@@ -134,37 +133,29 @@ jobs:
           git add Package.swift
           git commit -m "Point binary distribution at $BINARY_TAG"
 
-          # `GITHUB_TOKEN` may not create or update anything under
-          # `.github/workflows/`, and pushing a branch that does not exist yet
-          # counts as creating every file on it — this workflow included. The
-          # push is rejected with "refusing to allow a GitHub App to create or
-          # update workflow ... without `workflows` permission".
-          #
-          # That permission cannot just be granted: there is no `workflows:` key
-          # for a job's `permissions:` block. The scope exists only for personal
-          # access tokens and GitHub Apps.
-          #
-          # So create the ref server-side first, pointing at the commit that was
-          # checked out. That introduces no file content, because the commit is
-          # already on the server. The push below is then an ordinary
-          # fast-forward whose diff touches `Package.swift` alone, which the
-          # token is allowed to make.
-          gh api "repos/$GH_REPO/git/refs" \
-            -f "ref=refs/heads/$branch" \
-            -f "sha=$GITHUB_SHA" >/dev/null 2>&1 \
-            || gh api --method PATCH "repos/$GH_REPO/git/refs/heads/$branch" \
-                 -f "sha=$GITHUB_SHA" -F force=true >/dev/null
-
           git push origin "$branch"
 
-          gh pr create \
+          title="Binary distribution ${{ github.event.inputs.version }}"
+          body="Checksums for the \`$BINARY_TAG\` assets, built with Xcode ${{ env.XCODE_VERSION }}.
+
+          Merge this, then tag the merge commit \`${{ github.event.inputs.version }}\`."
+
+          pr_number="$(gh pr list \
             --base "${{ github.ref_name }}" \
             --head "$branch" \
-            --title "Binary distribution ${{ github.event.inputs.version }}" \
-            --body "Checksums for the \`$BINARY_TAG\` assets, built with Xcode ${{ env.XCODE_VERSION }}.
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')"
 
-          Merge this, then tag the merge commit \`${{ github.event.inputs.version }}\`." \
-            || gh pr edit "$branch" --title "Binary distribution ${{ github.event.inputs.version }}"
+          if [ -n "$pr_number" ]; then
+            gh pr edit "$pr_number" --title "$title" --body "$body"
+          else
+            gh pr create \
+              --base "${{ github.ref_name }}" \
+              --head "$branch" \
+              --title "$title" \
+              --body "$body"
+          fi
 
       - name: Summary
         run: |
