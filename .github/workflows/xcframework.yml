@@ -43,7 +43,7 @@ jobs:
     runs-on: macos-26
 
     env:
-      XCODE_VERSION: "26.6"
+      XCODE_VERSION: "26.5"
       BINARY_TAG: "binaries-${{ github.event.inputs.version }}"
       # Without this, `gh` on a fork resolves to the upstream repository: the
       # release would be created there and the pull request would target it.
