@@ -92,6 +92,29 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
+      # Loading the generated interfaces in their original build graph is not
+      # enough: an undeclared module can still be found there by accident. Use
+      # a separate package whose only dependency is Swiftfin, in binary mode,
+      # and compile it for both platforms before publishing anything.
+      - name: Validate binary package
+        working-directory: IntegrationTests/BinaryConsumer
+        run: |
+          rm -rf "$GITHUB_WORKSPACE/build/xcframework/DerivedData"
+
+          SWIFTFIN_BINARY=1 xcodebuild build \
+            -scheme BinaryConsumer \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath "$RUNNER_TEMP/BinaryConsumer-iOS" \
+            -skipMacroValidation
+
+          SWIFTFIN_BINARY=1 xcodebuild build \
+            -scheme BinaryConsumer \
+            -configuration Release \
+            -destination "generic/platform=tvOS" \
+            -derivedDataPath "$RUNNER_TEMP/BinaryConsumer-tvOS" \
+            -skipMacroValidation
+
       - name: Publish frameworks
         env:
           GH_TOKEN: ${{ github.token }}

@@ -8,9 +8,10 @@ The package ships in two forms:
 | | Source | Binary |
 | --- | --- | --- |
 | Swiftfin's own ~700 files | Compiled by you | Pre-built `XCFramework` |
-| Dependencies | Compiled by you | Compiled by you |
+| Implementation dependencies | Compiled by you | Linked into the framework |
+| Public-interface dependencies | Compiled by you | Three packages resolved by SwiftPM |
 | Toolchain | Any Xcode that can build Swiftfin | Same or newer compatible Swift compiler |
-| Debuggable | Yes, sources are right there | Dependencies only |
+| Debuggable | Yes, sources are right there | Interface dependencies only |
 
 Use **source** while working on Swiftfin itself, and **binary** to integrate a
 release into another app.
@@ -110,19 +111,22 @@ compiler-specific `.swiftmodule` that produced the release.
 Swiftfin and its implementation dependencies are statically linked into each
 dynamic framework. A textual interface still has to name modules used by
 Swiftfin's public API, so the package keeps those products available to the
-consumer. Modules that are implementation details do not need to be exposed by
-the interface.
+consumer. Today those are `JellyfinAPI`, plus the re-exported `Engine` and
+`StatefulMacros` modules. The other source-only packages are not resolved in
+binary mode. Imports are internal by default while producing the XCFramework,
+which prevents implementation details from leaking into `.swiftinterface`.
 
 Library evolution is applied only to `SwiftfinIOS` and `SwiftfinTVOS` with
 target-specific Swift flags. `BUILD_LIBRARY_FOR_DISTRIBUTION` is deliberately
 left off because Xcode propagates it to the entire graph and the current
 swift-nio `_NIODataStructures` target does not compile with it.
 
-One consequence to be aware of: the dependencies end up in the app twice — once
-statically linked inside `SwiftfinIOS.framework`, once compiled by you. They
-link and run, and Swift resolves types by mangled name so the two agree, but
-anything that relies on process-wide uniqueness (Objective-C class registration,
-`static let` singletons) exists twice. Source integration has no such split.
+One consequence to be aware of: the three interface dependencies remain in the
+consumer graph as well as being part of the monolithic Swiftfin framework. Code
+that the final linker pulls in from both copies can still have process-wide
+identity concerns, such as Objective-C class registration or global singletons.
+All other implementation packages have no second consumer-side copy. Source
+integration has no dynamic/static boundary.
 
 ## Using the library
 

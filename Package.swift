@@ -149,8 +149,8 @@ let swiftfinResources: [Resource] = [
     .process("Translations"),
 ]
 
-/// Dependencies shared by both platform targets.
-let commonDependencies: [Target.Dependency] = [
+/// Dependencies compiled into both source-built platform targets.
+let sourceTargetDependencies: [Target.Dependency] = [
     .product(name: "Algorithms", package: "swift-algorithms"),
     .product(name: "BlurHashKit", package: "BlurHashKit"),
     .product(name: "CollectionHStack", package: "CollectionHStack"),
@@ -179,6 +179,16 @@ let commonDependencies: [Target.Dependency] = [
     "PreferencesView",
 ]
 
+/// Modules named by the binary's textual public interface.
+///
+/// All other source dependencies are already linked into the framework and
+/// must not be resolved or linked a second time by a binary consumer.
+let binaryInterfaceDependencies: [Target.Dependency] = [
+    .product(name: "Engine", package: "Engine"),
+    .product(name: "JellyfinAPI", package: "jellyfin-sdk-swift"),
+    .product(name: "StatefulMacros", package: "StatefulMacro"),
+]
+
 // MARK: - Targets
 
 /// Source-built platform targets.
@@ -199,7 +209,7 @@ let sourceTargets: [Target] = [
     ),
     .target(
         name: "SwiftfinIOS",
-        dependencies: commonDependencies + [
+        dependencies: sourceTargetDependencies + [
             // Conditioned as well as being on an iOS-only target: an external
             // product without a condition still gets built for every platform
             // the package supports, and Mantis does not compile for tvOS.
@@ -211,7 +221,7 @@ let sourceTargets: [Target] = [
     ),
     .target(
         name: "SwiftfinTVOS",
-        dependencies: commonDependencies + [
+        dependencies: sourceTargetDependencies + [
             .product(name: "TVOSPicker", package: "TVOSPicker", condition: .when(platforms: [.tvOS])),
             .target(name: "TVVLCKit", condition: .when(platforms: [.tvOS])),
         ],
@@ -252,15 +262,7 @@ func swiftfinBinaryTarget(name: String, checksum: String) -> Target {
 /// have to branch on the platform themselves. It is a handful of
 /// `@_exported import` lines, so there is nothing to gain from shipping it as a
 /// binary too.
-let binaryTargets: [Target] = [
-    // Compiled from source even in binary mode: it is a handful of files, and
-    // the umbrella's `@_exported import` needs the module on the search path.
-    .target(
-        name: "PreferencesView",
-        path: "PreferencesView/Sources/PreferencesView",
-        swiftSettings: [.swiftLanguageMode(.v5)]
-    ),
-] +
+let binaryTargets: [Target] =
     (binaryIncludesIOS ? [
         swiftfinBinaryTarget(name: "SwiftfinIOS", checksum: swiftfinIOSChecksum),
         vlcKitTarget(name: "MobileVLCKit", checksum: mobileVLCKitChecksum),
@@ -271,20 +273,70 @@ let binaryTargets: [Target] = [
     ] : []) + [
         .target(
             name: "Swiftfin",
-            dependencies: commonDependencies +
+            dependencies: binaryInterfaceDependencies +
                 (binaryIncludesIOS ? [
                     Target.Dependency.target(name: "SwiftfinIOS", condition: .when(platforms: [.iOS])),
                     .target(name: "MobileVLCKit", condition: .when(platforms: [.iOS])),
-                    .product(name: "Mantis", package: "Mantis", condition: .when(platforms: [.iOS])),
                 ] : []) +
                 (binaryIncludesTVOS ? [
                     Target.Dependency.target(name: "SwiftfinTVOS", condition: .when(platforms: [.tvOS])),
                     .target(name: "TVVLCKit", condition: .when(platforms: [.tvOS])),
-                    .product(name: "TVOSPicker", package: "TVOSPicker", condition: .when(platforms: [.tvOS])),
                 ] : []),
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
     ]
+
+// Pinned exactly to the versions in
+// `Swiftfin.xcodeproj/.../Package.resolved`, so a source build compiles the
+// same dependency sources the shipping apps do. A `Package.resolved` of a
+// dependency is ignored by SwiftPM — only exact pins give consumers parity
+// with the app.
+//
+// `CollectionHStack` and `CollectionVGrid` publish no tags at all, so they can
+// only be referenced by branch. That limits version-tag consumption to binary
+// mode; see `Documentation/swiftpm.md`.
+let sourcePackageDependencies: [Package.Dependency] = [
+    // CoreStore 9.3.0 does not compile under Xcode 27 ("ambiguous use of
+    // 'cs_sync'"). Upstream fixed it in be977e2 but has not tagged a release
+    // since, so the fix has to be pinned by revision.
+    .package(
+        url: "https://github.com/JohnEstropia/CoreStore.git",
+        revision: "be977e255ba7e6bb089337b38b5b194f86923f40"
+    ),
+    .package(url: "https://github.com/JohnSundell/Files", exact: "4.3.0"),
+    .package(url: "https://github.com/LePips/BlurHashKit", exact: "2.0.0"),
+    .package(url: "https://github.com/LePips/CollectionHStack", branch: "main"),
+    .package(url: "https://github.com/LePips/CollectionVGrid", branch: "main"),
+    .package(url: "https://github.com/LePips/StatefulMacro", exact: "0.1.7"),
+    .package(url: "https://github.com/LePips/VLCUI", exact: "0.8.1"),
+    .package(url: "https://github.com/SVGKit/SVGKit", exact: "3.0.0"),
+    .package(url: "https://github.com/ViacomInc/TVOSPicker", exact: "0.3.0"),
+    .package(url: "https://github.com/apple/swift-algorithms.git", exact: "1.2.1"),
+    .package(url: "https://github.com/apple/swift-collections.git", exact: "1.6.0"),
+    .package(url: "https://github.com/apple/swift-log.git", exact: "1.14.0"),
+    .package(url: "https://github.com/evgenyneu/keychain-swift", exact: "24.0.0"),
+    .package(url: "https://github.com/guoyingtao/Mantis", exact: "2.31.2"),
+    .package(url: "https://github.com/hmlongco/Factory", exact: "3.3.2"),
+    .package(url: "https://github.com/jellyfin/jellyfin-sdk-swift.git", exact: "3.0.0"),
+    .package(url: "https://github.com/kean/Get", exact: "2.2.1"),
+    .package(url: "https://github.com/kean/Nuke", exact: "13.0.6"),
+    .package(url: "https://github.com/kean/Pulse", exact: "5.2.3"),
+    .package(url: "https://github.com/kean/PulseLogHandler", exact: "5.1.0"),
+    .package(url: "https://github.com/nathantannar4/Engine", exact: "2.12.4"),
+    .package(url: "https://github.com/nathantannar4/Transmission", exact: "2.13.4"),
+    .package(url: "https://github.com/pointfreeco/swift-identified-collections", exact: "1.1.1"),
+    .package(url: "https://github.com/siteline/SwiftUI-Introspect", exact: "26.0.1"),
+    .package(url: "https://github.com/sindresorhus/Defaults", exact: "9.0.9"),
+]
+
+/// The binary interface still exposes Jellyfin SDK types and re-exports the
+/// Engine/Stateful macro support used throughout Swiftfin. No implementation-
+/// only package should appear here.
+let binaryPackageDependencies: [Package.Dependency] = [
+    .package(url: "https://github.com/LePips/StatefulMacro", exact: "0.1.7"),
+    .package(url: "https://github.com/jellyfin/jellyfin-sdk-swift.git", exact: "3.0.0"),
+    .package(url: "https://github.com/nathantannar4/Engine", exact: "2.12.4"),
+]
 
 let package = Package(
     name: "Swiftfin",
@@ -302,47 +354,6 @@ let package = Package(
         .library(name: "SwiftfinIOS", type: .dynamic, targets: ["SwiftfinIOS"]),
         .library(name: "SwiftfinTVOS", type: .dynamic, targets: ["SwiftfinTVOS"]),
     ] : []),
-    // Pinned exactly to the versions in
-    // `Swiftfin.xcodeproj/.../Package.resolved`, so the library compiles the
-    // same dependency sources the shipping apps do. A `Package.resolved` of a
-    // *dependency* is ignored by SwiftPM — only exact pins give consumers
-    // parity with the app.
-    //
-    // `CollectionHStack` and `CollectionVGrid` publish no tags at all, so they
-    // can only be referenced by branch. That is what stops this package from
-    // being consumable via a version tag; see `Documentation/swiftpm.md`.
-    dependencies: [
-        // CoreStore 9.3.0 does not compile under Xcode 27 ("ambiguous use of
-        // 'cs_sync'"). Upstream fixed it in be977e2 but has not tagged a
-        // release since, so the fix has to be pinned by revision.
-        .package(
-            url: "https://github.com/JohnEstropia/CoreStore.git",
-            revision: "be977e255ba7e6bb089337b38b5b194f86923f40"
-        ),
-        .package(url: "https://github.com/JohnSundell/Files", exact: "4.3.0"),
-        .package(url: "https://github.com/LePips/BlurHashKit", exact: "2.0.0"),
-        .package(url: "https://github.com/LePips/CollectionHStack", branch: "main"),
-        .package(url: "https://github.com/LePips/CollectionVGrid", branch: "main"),
-        .package(url: "https://github.com/LePips/StatefulMacro", exact: "0.1.7"),
-        .package(url: "https://github.com/LePips/VLCUI", exact: "0.8.1"),
-        .package(url: "https://github.com/SVGKit/SVGKit", exact: "3.0.0"),
-        .package(url: "https://github.com/ViacomInc/TVOSPicker", exact: "0.3.0"),
-        .package(url: "https://github.com/apple/swift-algorithms.git", exact: "1.2.1"),
-        .package(url: "https://github.com/apple/swift-collections.git", exact: "1.6.0"),
-        .package(url: "https://github.com/apple/swift-log.git", exact: "1.14.0"),
-        .package(url: "https://github.com/evgenyneu/keychain-swift", exact: "24.0.0"),
-        .package(url: "https://github.com/guoyingtao/Mantis", exact: "2.31.2"),
-        .package(url: "https://github.com/hmlongco/Factory", exact: "3.3.2"),
-        .package(url: "https://github.com/jellyfin/jellyfin-sdk-swift.git", exact: "3.0.0"),
-        .package(url: "https://github.com/kean/Get", exact: "2.2.1"),
-        .package(url: "https://github.com/kean/Nuke", exact: "13.0.6"),
-        .package(url: "https://github.com/kean/Pulse", exact: "5.2.3"),
-        .package(url: "https://github.com/kean/PulseLogHandler", exact: "5.1.0"),
-        .package(url: "https://github.com/nathantannar4/Engine", exact: "2.12.4"),
-        .package(url: "https://github.com/nathantannar4/Transmission", exact: "2.13.4"),
-        .package(url: "https://github.com/pointfreeco/swift-identified-collections", exact: "1.1.1"),
-        .package(url: "https://github.com/siteline/SwiftUI-Introspect", exact: "26.0.1"),
-        .package(url: "https://github.com/sindresorhus/Defaults", exact: "9.0.9"),
-    ],
+    dependencies: useBinaryDistribution ? binaryPackageDependencies : sourcePackageDependencies,
     targets: useBinaryDistribution ? binaryTargets : sourceTargets
 )

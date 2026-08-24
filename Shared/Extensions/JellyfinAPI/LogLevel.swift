@@ -6,8 +6,8 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import JellyfinAPI
-import SwiftUI
+public import JellyfinAPI
+public import SwiftUI
 
 extension LogLevel: SystemImageable, Displayable {
     public var color: Color {

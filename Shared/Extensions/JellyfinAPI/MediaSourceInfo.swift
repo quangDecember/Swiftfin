@@ -6,8 +6,8 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import CoreTransferable
-import JellyfinAPI
+public import CoreTransferable
+public import JellyfinAPI
 
 extension MediaSourceInfo: Displayable {
 

@@ -6,10 +6,10 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import CoreTransferable
+public import CoreTransferable
 import FactoryKit
 import Foundation
-import JellyfinAPI
+public import JellyfinAPI
 import VLCUI
 
 extension MediaStream {

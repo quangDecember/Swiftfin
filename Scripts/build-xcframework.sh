@@ -309,6 +309,22 @@ build_slice() {
         cp -R "$bundle" "$framework/"
     done
 
+    # A simulator product is ad-hoc signed before the modules and resource
+    # bundles above are copied into it, leaving a stale signature. Distribution
+    # XCFrameworks are signed by the embedding app, so ship every slice unsigned
+    # and consistent.
+    if codesign -d "$framework" >/dev/null 2>&1; then
+        codesign --remove-signature "$framework"
+        rm -rf "$framework/_CodeSignature"
+    fi
+
+    # A SwiftPM framework product is not passed through Xcode's archive/embed
+    # phase, so its non-global symbol table is still present even in Release.
+    # The embedding app would strip these symbols eventually, but removing them
+    # here makes the published archive substantially smaller without touching
+    # the exported symbols needed to load the dynamic framework.
+    xcrun strip -x "$framework/$module"
+
     echo "$framework"
 }
 

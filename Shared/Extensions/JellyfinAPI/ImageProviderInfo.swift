@@ -6,7 +6,7 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import JellyfinAPI
+public import JellyfinAPI
 
 extension ImageProviderInfo: @retroactive Identifiable {
 

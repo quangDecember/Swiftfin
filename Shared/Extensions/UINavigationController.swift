@@ -7,7 +7,7 @@
 //
 
 #if os(iOS)
-import UIKit
+public import UIKit
 
 extension UINavigationController {
 

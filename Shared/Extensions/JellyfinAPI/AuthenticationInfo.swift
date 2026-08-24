@@ -6,9 +6,9 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import CoreTransferable
+public import CoreTransferable
 import Foundation
-import JellyfinAPI
+public import JellyfinAPI
 
 extension AuthenticationInfo: @retroactive Transferable, TextTransferable {
 

@@ -6,7 +6,7 @@
 // Copyright (c) 2026 Jellyfin & Jellyfin Contributors
 //
 
-import SwiftUI
+public import SwiftUI
 
 #if os(iOS)
 import PreferencesView

@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import JellyfinAPI
+public import JellyfinAPI
 
 extension CountryInfo: Displayable {
 

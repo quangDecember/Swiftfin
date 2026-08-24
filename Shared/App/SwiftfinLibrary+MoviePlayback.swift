@@ -7,9 +7,9 @@
 //
 
 import FactoryKit
-import Foundation
-import JellyfinAPI
-import SwiftUI
+public import Foundation
+public import JellyfinAPI
+public import SwiftUI
 
 /// How to find a movie on the connected Jellyfin server.
 public enum SwiftfinMovieLookup: Hashable, Sendable {
