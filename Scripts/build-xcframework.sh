@@ -266,8 +266,37 @@ build_slice() {
     cp -R "$products/$module.swiftmodule" "$framework/Modules/"
 
     local module_dir="$framework/Modules/$module.swiftmodule"
-    if ! find "$module_dir" -maxdepth 1 -type f -name '*.swiftinterface' -print -quit | grep -q .; then
-        echo "$module $destination produced no .swiftinterface" >&2
+
+    # With target-specific `-emit-module-interface` and
+    # `BUILD_LIBRARY_FOR_DISTRIBUTION=NO`, Xcode verifies the interface but
+    # leaves it in Intermediates instead of copying it to Products. Copy each
+    # architecture's verified interface beside the matching compiler module,
+    # using the target-triple basename Swift expects inside a framework.
+    local objects="$derived/Build/Intermediates.noindex/Swiftfin.build/Release-$products_dir/$module.build/Objects-normal"
+    local copied_interfaces=0
+
+    for compiled_module in "$module_dir"/*.swiftmodule; do
+        [ -f "$compiled_module" ] || continue
+
+        local basename architecture interface private_interface
+        basename="$(basename "$compiled_module" .swiftmodule)"
+        architecture="${basename%%-*}"
+        interface="$objects/$architecture/$module.swiftinterface"
+        private_interface="$objects/$architecture/$module.private.swiftinterface"
+
+        [ -f "$interface" ] || {
+            echo "no verified interface for $basename at $interface" >&2
+            exit 1
+        }
+
+        cp "$interface" "$module_dir/$basename.swiftinterface"
+        [ ! -f "$private_interface" ] || \
+            cp "$private_interface" "$module_dir/$basename.private.swiftinterface"
+        copied_interfaces=$((copied_interfaces + 1))
+    done
+
+    if [ "$copied_interfaces" -eq 0 ]; then
+        echo "$module $destination produced no compiler modules to pair with .swiftinterface files" >&2
         exit 1
     fi
 
