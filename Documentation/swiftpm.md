@@ -213,9 +213,11 @@ cheaper.
 Alternate app icons are addressed through `setAlternateIconName`, which only
 reads icons from the host app's own bundle. The package therefore omits the app
 icon sets from its compiled resource catalog; including them added roughly 85 MB
-per device framework while still being unusable by the host. The small preview
-image sets remain. A host that offers alternate icons must declare the actual
-icons in its own asset catalog and `Info.plist`.
+per device framework while still being unusable by the host. The matching
+top-level `AppIcon-*.imageset` previews are omitted too: preserving their vector
+representations accounted for most of that compiled size. A host that offers an
+icon picker must provide both the alternate icons and any preview images it uses
+in its own asset catalog, plus the icon declarations in `Info.plist`.
 
 ## Working on the package
 
@@ -233,8 +235,8 @@ Scripts/sync-package-sources.sh
 Asset catalogs are mirrored file by file rather than linked wholesale, because
 `actool` does not follow directory symlinks — a linked `.xcassets` compiles to
 nothing at all, silently, and every image comes up empty at runtime. The sync
-script removes `AppIcons` from these mirrors after linking them; it never edits
-the app targets' original catalogs.
+script removes `AppIcons` and the `AppIcon-*.imageset` previews from these
+mirrors after linking them; it never edits the app targets' original catalogs.
 
 Two lists have to stay in step with `Swiftfin.xcodeproj` by hand:
 

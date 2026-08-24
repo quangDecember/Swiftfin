@@ -104,6 +104,10 @@ let swiftfinSwiftSettings: [SwiftSetting] = [
     .swiftLanguageMode(.v5),
     .enableUpcomingFeature("BareSlashRegexLiterals"),
 ] + (buildingXCFramework ? [
+    // Keep implementation-only imports out of the textual interface. Without
+    // this, every package used to build Swiftfin becomes an apparent consumer
+    // dependency even when its code has already been linked into the binary.
+    .enableUpcomingFeature("InternalImportsByDefault"),
     // Library evolution is applied to Swiftfin's own modules rather than through
     // `BUILD_LIBRARY_FOR_DISTRIBUTION`, which xcodebuild would force onto every
     // dependency — and swift-nio's `_NIODataStructures` does not compile with it.
