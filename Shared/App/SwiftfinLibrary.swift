@@ -7,15 +7,28 @@
 //
 
 import CoreStore
+import CoreText
 import FactoryKit
+import Foundation
 import Logging
 import Nuke
 import PulseLogHandler
 import UIKit
 
-extension SwiftfinApp {
+public enum SwiftfinLibrary {
 
-    static func configure() {
+    private static let configureLock = NSLock()
+    private nonisolated(unsafe) static var isConfigured = false
+
+    /// One-time process setup: logging, the Core Data stack and the image pipeline.
+    ///
+    /// Safe to call more than once; only the first call has any effect.
+    public static func configure() {
+        configureLock.lock()
+        defer { configureLock.unlock() }
+
+        guard !isConfigured else { return }
+        isConfigured = true
 
         // Logging
         LoggingSystem.bootstrap { label in
@@ -48,5 +61,12 @@ extension SwiftfinApp {
         }
 
         ImagePipeline.shared = .Swiftfin.posters
+
+        #if SWIFT_PACKAGE
+        // The app declares its fonts with `UIAppFonts`, which a host app's Info.plist won't have.
+        if let fontURL = Bundle.module.url(forResource: "NotoSansCJK-Regular", withExtension: "ttc", subdirectory: "Fonts") {
+            CTFontManagerRegisterFontURLs([fontURL] as CFArray, .process, true, nil)
+        }
+        #endif
     }
 }

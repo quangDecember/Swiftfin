@@ -1,5 +1,5 @@
 {
-  "originHash" : "cff8e261a7fd8c60b832ace6eb28dc4c8d37ffd5bc7c886831f7f2c64e8d0efd",
+  "originHash" : "55c657035ae835346b6800e21d6a8d7b2ffa0e6ca7167a6c202a1798a71fed74",
   "pins" : [
     {
       "identity" : "blurhashkit",
@@ -24,7 +24,6 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/LePips/CollectionHStack",
       "state" : {
-        "branch" : "main",
         "revision" : "15baaaa759a0e252addae08431c79a49a25e4afc"
       }
     },
@@ -33,7 +32,6 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/LePips/CollectionVGrid",
       "state" : {
-        "branch" : "main",
         "revision" : "7188ac9c8f57ada38dd1000e12b51e25d8bd29ba"
       }
     },
@@ -271,6 +269,15 @@
       }
     },
     {
+      "identity" : "swift-issue-reporting",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-issue-reporting",
+      "state" : {
+        "revision" : "71c7c9a761d1ca6ed4ccb6ced040fe1c1a39e8e7",
+        "version" : "2.1.0"
+      }
+    },
+    {
       "identity" : "swift-log",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-log.git",
@@ -284,8 +291,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio.git",
       "state" : {
-        "revision" : "0b18836bd8b0162e7e17a995a3fbee20ed8f3b2b",
-        "version" : "2.101.3"
+        "revision" : "a931f2c1de8dd49381ce3bf2e279d033f68d8865",
+        "version" : "2.102.0"
       }
     },
     {
@@ -320,8 +327,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-system.git",
       "state" : {
-        "revision" : "704705c5c51156ede21172a38654d522ce487074",
-        "version" : "1.8.0"
+        "revision" : "869129b7bf4ecc57b97d0193ad29690ca2134750",
+        "version" : "1.8.1"
       }
     },
     {
@@ -352,21 +359,12 @@
       }
     },
     {
-      "identity" : "tvospicker",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ViacomInc/TVOSPicker",
-      "state" : {
-        "revision" : "90806460f3b3e7564344647241c157aeb0b27a71",
-        "version" : "0.3.0"
-      }
-    },
-    {
       "identity" : "xctest-dynamic-overlay",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay",
       "state" : {
-        "revision" : "8f6abcf4c8950e2679d5b2fee4ca284fd7c34886",
-        "version" : "1.11.0"
+        "revision" : "d9308ad679143c26a30dec52daefe82f54af2b82",
+        "version" : "1.13.1"
       }
     }
   ],

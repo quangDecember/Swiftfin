@@ -1,4 +1,5 @@
 excluded:
+  - .build
   - build
 
 only_rules:

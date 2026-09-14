@@ -12,7 +12,7 @@ import SwiftUI
 struct SwiftfinApp: App {
 
     init() {
-        Self.configure()
+        SwiftfinLibrary.configure()
 
         UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: UIColor.label]
     }

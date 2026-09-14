@@ -68,7 +68,25 @@ extension SwiftfinStore {
 
     private static let appOwnerID = "swiftfinApp"
 
-    static func setupDataStack() async throws {
+    @MainActor
+    private static var setupDataStackTask: Task<Void, Error>?
+
+    /// Sets up the data stack once per process, however many `RootView`s or library
+    /// calls ask for it. A failed setup is retried by the next caller.
+    @MainActor
+    static func setupDataStackIfNeeded() async throws {
+        let task = setupDataStackTask ?? Task { try await setupDataStack() }
+        setupDataStackTask = task
+
+        do {
+            try await task.value
+        } catch {
+            setupDataStackTask = nil
+            throw error
+        }
+    }
+
+    private static func setupDataStack() async throws {
         var migrationTypes = try dataStack.requiredMigrationsForStorage(storage)
 
         if try await manuallyMigrateV1ToV2IfNeeded(for: migrationTypes) {

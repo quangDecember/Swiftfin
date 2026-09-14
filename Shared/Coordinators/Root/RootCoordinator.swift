@@ -62,7 +62,7 @@ final class RootCoordinator: ObservableObject {
         started = true
 
         do {
-            try await SwiftfinStore.setupDataStack()
+            try await SwiftfinStore.setupDataStackIfNeeded()
             startPreferenceObservation()
         } catch {
             throw AppStartupError.dataStack(error)
@@ -94,19 +94,23 @@ final class RootCoordinator: ObservableObject {
         appearanceCancellable?.cancel()
         splashScreenCancellable?.cancel()
 
-        accentColorCancellable = Task {
-            applyAccentColor(Defaults[.userAccentColor])
+        // Tasks capture `self` weakly: they never finish on their own, so a strong capture
+        // would keep the coordinator (and its window tinting) alive after `RootView` is gone.
+        accentColorCancellable = Task { [weak self] in
+            self?.applyAccentColor(Defaults[.userAccentColor])
 
             for await newValue in Defaults.updates(.userAccentColor) {
+                guard let self else { return }
                 applyAccentColor(newValue)
             }
         }
         .asAnyCancellable()
 
-        appearanceCancellable = Task {
-            applyAppearance(Defaults[.userAppearance])
+        appearanceCancellable = Task { [weak self] in
+            self?.applyAppearance(Defaults[.userAppearance])
 
             for await newValue in Defaults.updates(.userAppearance) {
+                guard let self else { return }
                 applyAppearance(newValue)
             }
         }
@@ -118,15 +122,16 @@ final class RootCoordinator: ObservableObject {
         appearanceCancellable?.cancel()
         splashScreenCancellable?.cancel()
 
-        accentColorCancellable = Task {
-            applyAccentColor(.jellyfinPurple)
+        accentColorCancellable = Task { [weak self] in
+            self?.applyAccentColor(.jellyfinPurple)
         }
         .asAnyCancellable()
 
-        appearanceCancellable = Task {
-            applyAppAppearance()
+        appearanceCancellable = Task { [weak self] in
+            self?.applyAppAppearance()
 
             for await newValue in Defaults.updates(.appAppearance) {
+                guard let self else { return }
                 guard !Defaults[.selectUserUseSplashscreen] else { continue }
 
                 applyAppearance(newValue)
@@ -134,8 +139,9 @@ final class RootCoordinator: ObservableObject {
         }
         .asAnyCancellable()
 
-        splashScreenCancellable = Task {
+        splashScreenCancellable = Task { [weak self] in
             for await _ in Defaults.updates(.selectUserUseSplashscreen) {
+                guard let self else { return }
                 applyAppAppearance()
             }
         }
