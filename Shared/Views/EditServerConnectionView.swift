@@ -25,11 +25,6 @@ struct EditServerConnectionView: View {
     @State
     private var draft: ServerConnectionDraft
 
-    #if os(iOS)
-    @State
-    private var locationPermissionStatus = AppPermission.location.status
-    #endif
-
     private let initialConnection: ServerConnection
     private let initialDraft: ServerConnectionDraft
 
@@ -105,34 +100,6 @@ struct EditServerConnectionView: View {
 
         self._draft = State(initialValue: ServerConnectionDraft(connection: connection))
     }
-
-    #if os(iOS)
-    @ViewBuilder
-    private var locationPermissionWarning: some View {
-
-        if draft.interface == .wifi,
-           locationPermissionStatus != .authorized,
-           AppPermission.location.privacyDescription.isNotEmpty
-        {
-            VStack(alignment: .leading, spacing: 8) {
-                Label(
-                    AppPermission.location.privacyDescription,
-                    systemImage: "exclamationmark.circle.fill"
-                )
-                .labelStyle(.sectionFooterWithImage(imageStyle: .orange))
-
-                if locationPermissionStatus == .denied {
-                    Button(L10n.permissions) {
-                        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-                        UIApplication.shared.open(url)
-                    }
-                    .foregroundStyle(Color.accentColor)
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-    #endif
 
     private func save() async throws {
         guard !isNameEmpty else {
@@ -227,8 +194,6 @@ struct EditServerConnectionView: View {
                 }
             } header: {
                 Text(L10n.network)
-            } footer: {
-                locationPermissionWarning
             }
             #endif
 
@@ -315,12 +280,6 @@ struct EditServerConnectionView: View {
         .onChange(of: draft.useWifiName) {
             guard draft.useWifiName, draft.interface == .wifi, draft.wifiSSIDs.first?.nilIfBlank == nil else { return }
             populateCurrentWifiSSID(keepSpecificOnFailure: true)
-        }
-        .onAppear {
-            locationPermissionStatus = AppPermission.location.status
-        }
-        .onNotification(.applicationWillEnterForeground) {
-            locationPermissionStatus = AppPermission.location.status
         }
         #endif
     }
