@@ -91,6 +91,7 @@ public struct SwiftfinMovieDetailView: View {
                 ProgressView()
             case let .ready(item):
                 SwiftfinMovieItemDetailView(item: item)
+                    .id(item.id)
             case .notFound:
                 Text(L10n.noResults)
             case let .failed(message):
